@@ -110,11 +110,6 @@ class UniversityHomeTab extends StatelessWidget {
     // bank counts for the picked school.
     final int questionCount = schoolCourses.fold<int>(
         0, (int n, UniCourse c) => n + c.exam.questionCount);
-    // Founder-only school switching (2026-10-04): the "All schools"
-    // escape hatch is the founder's; students live on their own desk.
-    final bool founder =
-        (student.me?.email ?? '').trim().toLowerCase() ==
-            'ariyooluwafemi487@gmail.com';
 
     return RefreshIndicator(
       onRefresh: student.refresh,
@@ -137,70 +132,65 @@ class UniversityHomeTab extends StatelessWidget {
                 ? '${schoolCourses.length} courses'
                   ' · ${_formatThousands(questionCount)} questions'
                 : 'Course content lands as it is harvested',
-            picked: slug != null,
             onOpen: () => _openDesk(context),
           ),
-          // Course chips row ----------------------------------------------
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Text('Active Courses', style: RenanceText.sectionTitle.copyWith(fontSize: 16)),
-              // Founder-only (2026-10-04): for students the desk shows
-              // their own school's courses, never the all-schools gate.
-              if (founder)
+          // Course chips row (web: the whole section hides when the
+          // picked school has no courses - header, link and chips all go).
+          if (schoolCourses.isNotEmpty) ...<Widget>[
+            // gap-4 + mt-1 - the web's exact 20px under the hero card.
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                // web: text-sm font-semibold text-on-surface (14px w600)
+                Text('Active Courses',
+                    style: RenanceText.sectionTitle.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    )),
+                // web: Link "View all" p-2 text-[13px]
+                // text-on-surface-variant -> /university/<slug> - the
+                // school's own course-bank desk. Every student gets it.
                 TextButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) =>
-                          UniversityPickerScreen(exams: sync.exams),
-                    ),
-                  ),
+                  onPressed: () =>
+                      _openSchoolBanks(context, slug, schoolCourses),
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.all(8),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: Text('All schools',
+                  child: Text('View all',
                       style: RenanceText.caption.copyWith(
                           fontSize: 13, color: context.textSecondary)),
                 ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 36,
-            child: schoolCourses.isEmpty
-                ? ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: <Widget>[
-                      for (final String s in schools.keys.take(6))
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: _CourseChip(
-                              (kUniversitySchools[s] ?? (s.toUpperCase(), s)).$1,
-                              false),
-                        ),
-                    ],
-                  )
-                : ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: <Widget>[
-                      for (final UniCourse c in schoolCourses.take(6))
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: _CourseChip(c.label, false),
-                        ),
-                    ],
-                  ),
-          ),
-          const SizedBox(height: 16),
+              ],
+            ),
+            // web: pt-1.5 - the 6px gap between header and chips.
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 28,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: <Widget>[
+                  // web: courses.slice(0, 10), gap-1.5 (6px).
+                  for (final UniCourse c in schoolCourses.take(10))
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: _CourseChip(c.label, false),
+                    ),
+                ],
+              ),
+            ),
+          ],
           // Study grid - the web's university desk icons
+          // gap-4 + mt-2 - the web's 24px under the chips strip.
+          const SizedBox(height: 24),
           Text(
             'Study',
             style: RenanceText.sectionTitle.copyWith(
               color: context.textSecondary,
               fontSize: 14,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 12),
@@ -210,9 +200,9 @@ class UniversityHomeTab extends StatelessWidget {
                 child: LauncherTile(
                   msIcon: 'assignment',
                   label: 'Courses',
-                  // the web's Courses tile: the gamified My Semester
-                  badge: student.dueTopics > 0 ? '${student.dueTopics}' : null,
-                  badgeColor: RenanceColors.emerald,
+                  // The web's university Courses tile passes NO badge -
+                  // the count chip is the JAMB desk's Review-Due
+                  // treatment only. The green "4" bubble is gone.
                   onTap: () => onGoTab(1),
                 ),
               ),
@@ -250,12 +240,14 @@ class UniversityHomeTab extends StatelessWidget {
             ],
           ),
           // Grow grid - the web's exact four
-          const SizedBox(height: 16),
+          // gap-4 + mt-4 - the web's 32px between the grids.
+          const SizedBox(height: 32),
           Text(
             'Grow',
             style: RenanceText.sectionTitle.copyWith(
               color: context.textSecondary,
               fontSize: 14,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 12),
@@ -304,12 +296,14 @@ class UniversityHomeTab extends StatelessWidget {
             ],
           ),
           // Tools & Resources - shared with the other desks
-          const SizedBox(height: 16),
+          // gap-4 + mt-4 - the web's 32px above the tools grid.
+          const SizedBox(height: 32),
           Text(
             'Tools & Resources',
             style: RenanceText.sectionTitle.copyWith(
               color: context.textSecondary,
               fontSize: 14,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 12),
@@ -398,7 +392,6 @@ class _SchoolHeroCard extends StatelessWidget {
     required this.heroShort,
     required this.heroName,
     required this.subtitle,
-    required this.picked,
     required this.onOpen,
   });
 
@@ -406,7 +399,6 @@ class _SchoolHeroCard extends StatelessWidget {
   final String heroShort;
   final String heroName;
   final String subtitle;
-  final bool picked;
   final VoidCallback onOpen;
 
   @override
@@ -419,9 +411,10 @@ class _SchoolHeroCard extends StatelessWidget {
       child: Stack(
         children: <Widget>[
           // corner blobs - the same clipped ornaments the web pins
+          // (-top-14 -right-14 / -bottom-12 -left-10 = -56/-56, -48/-40)
           Positioned(
-            top: -78,
-            right: -50,
+            top: -56,
+            right: -56,
             child: Container(
               width: 128,
               height: 128,
@@ -432,8 +425,8 @@ class _SchoolHeroCard extends StatelessWidget {
             ),
           ),
           Positioned(
-            bottom: -62,
-            left: -38,
+            bottom: -48,
+            left: -40,
             child: Container(
               width: 96,
               height: 96,
@@ -466,7 +459,7 @@ class _SchoolHeroCard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: onHero.withValues(alpha: 0.12),
+                      color: onHero.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Row(
@@ -497,7 +490,7 @@ class _SchoolHeroCard extends StatelessWidget {
                   fontFamily: 'Nunito',
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
+                  letterSpacing: -0.5,
                   height: 1.15,
                   color: Color(0xFF3C3C46),
                 ).copyWith(color: onHero),
@@ -516,12 +509,15 @@ class _SchoolHeroCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              // CTA: h-11 rounded-[10px] bg-hero-cta, school icon 18px
+              // CTA: h-11 rounded-[10px] bg-hero-cta, school icon 18px.
+              // The web's tactile rule paints a.bg-hero-cta at
+              // font-weight 800 with the 4px edge - TactileButton carries
+              // the edge; the label rides w800 to match.
               TactileButton(
                 height: 44,
                 radius: BorderRadius.circular(10),
                 fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w800,
                 face: context.heroCta,
                 onFace: context.onHeroCta,
                 edge: mixTowardBlack(context.heroCta, 0.68),
@@ -531,9 +527,10 @@ class _SchoolHeroCard extends StatelessWidget {
                   children: <Widget>[
                     const MsIcon('school', size: 18, fill: true),
                     const SizedBox(width: 8),
-                    Text(picked
-                        ? 'Open your semester desk'
-                        : 'Pick your school'),
+                    // The web CTA label is static - "Open your semester
+                    // desk" even when no school is picked yet (the
+                    // picker opens behind it).
+                    const Text('Open your semester desk'),
                   ],
                 ),
               ),
@@ -559,7 +556,7 @@ class _CourseChip extends StatelessWidget {
     // bg-surface-container-low px-3.5 text-[12px] font-semibold
     // on-surface-variant, 1px press sink.
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
         color: selected
             ? context.selectionBlue

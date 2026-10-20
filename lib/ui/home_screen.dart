@@ -655,7 +655,11 @@ class HomeHeader extends StatelessWidget {
                   icon: 'notifications_none',
                   onTap: onNotifications,
                   alert: alert,
-                  badge: alertCount > 0 ? '$alertCount' : null,
+                  // Web: unread > 9 ? '9+' : unread - the badge caps at
+                  // 9+ exactly like the dashboard header.
+                  badge: alertCount > 0
+                      ? (alertCount > 9 ? '9+' : '$alertCount')
+                      : null,
                 ),
               ],
               const SizedBox(width: 6),
@@ -1532,13 +1536,16 @@ class LauncherTile extends StatelessWidget {
   final Color badgeColor;
 
   Widget _glyph(BuildContext context) {
-    // The web's tile glyph: text-[21px] on phones (md:text-[23px]).
+    // The web's tile glyph: text-[21px] on phones (md:text-[23px]),
+    // inheriting the box's text-on-surface INK - the 2026-10-20 founder
+    // screenshot pass: the glyphs read near-black on the website, never
+    // the brand green (green is reserved for the inverse Tutor tile).
     if (msIcon != null) {
       return MsIcon(
         msIcon!,
         size: 21,
         wght: 600,
-        color: iconColor ?? context.primary,
+        color: iconColor ?? context.ink,
       );
     }
     if (icon != null) {
@@ -1550,10 +1557,10 @@ class LauncherTile extends StatelessWidget {
         // tiers: black on light, white on dark - unchanged. Seeded: the
         // whole grid takes the picked colour, matching how the website's
         // desk visibly re-tints per appearance.
-        color: iconColor ?? context.primary,
+        color: iconColor ?? context.ink,
       );
     }
-    return MsIcon('circle', size: 21, color: iconColor ?? context.primary);
+    return MsIcon('circle', size: 21, color: iconColor ?? context.ink);
   }
 
   @override

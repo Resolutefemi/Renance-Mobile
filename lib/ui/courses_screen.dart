@@ -732,6 +732,11 @@ class _SelectFaceState extends State<_SelectFace> {
                             subBold: _inList.contains(item.id),
                             checked: _inList.contains(item.id),
                             onTap: () => _toggle(item),
+                            // the founder's small ❌ on the right-hand
+                            // tip of every taken course (2026-10-20)
+                            onRemove: _inList.contains(item.id)
+                                ? () => _toggle(item)
+                                : null,
                           ),
                         );
                       },
@@ -749,6 +754,7 @@ class _CatalogRow extends StatelessWidget {
     required this.checked,
     required this.onTap,
     this.subBold = false,
+    this.onRemove,
   });
 
   final String title;
@@ -756,6 +762,10 @@ class _CatalogRow extends StatelessWidget {
   final bool checked;
   final bool subBold;
   final VoidCallback onTap;
+
+  /// The small ❌ at the right-hand tip of taken courses (founder
+  /// 2026-10-20); null hides it for rows not in the list.
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -809,6 +819,33 @@ class _CatalogRow extends StatelessWidget {
               ],
             ),
           ),
+          // the small ❌ at the right-hand tip of taken courses
+          if (checked && onRemove != null) ...<Widget>[
+            const SizedBox(width: 10),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onRemove,
+              child: Container(
+                width: 26,
+                height: 26,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: RenanceColors.cardinal.withValues(alpha: 0.10),
+                  border: Border.all(
+                    color: RenanceColors.cardinal.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                child: const MsIcon(
+                  'close',
+                  size: 15,
+                  color: RenanceColors.cardinal,
+                  wght: 700,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1432,8 +1469,15 @@ class _ManageFaceState extends State<_ManageFace> {
       });
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        // 5xx means the silent client retry already ran (learnAiMatch
+        // retries server faults once) - the copy asks for one more tap
+        // instead of blaming the student's connection.
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.statusCode >= 500
+              ? 'The AI finder stumbled on our servers - tap Find my '
+                  'courses again in a few seconds.'
+              : e.message),
+        ));
       }
     } on NetworkException catch (e) {
       if (mounted) {
@@ -1552,6 +1596,7 @@ class _ManageFaceState extends State<_ManageFace> {
                       course: c,
                       inList: _inList.contains(c.id),
                       onTap: () => _toggle(c),
+                      onRemove: () => _toggle(c),
                     ),
                   ),
                 const SizedBox(height: 10),
@@ -1589,6 +1634,7 @@ class _ManageFaceState extends State<_ManageFace> {
                     course: c,
                     inList: _inList.contains(c.id),
                     onTap: () => _toggle(c),
+                    onRemove: () => _toggle(c),
                   ),
                 ),
               const SizedBox(height: 12),
@@ -1604,6 +1650,7 @@ class _ManageFaceState extends State<_ManageFace> {
                     course: c,
                     inList: _inList.contains(c.id),
                     onTap: () => _toggle(c),
+                    onRemove: () => _toggle(c),
                   ),
                 ),
               const SizedBox(height: 12),
@@ -1619,6 +1666,7 @@ class _ManageFaceState extends State<_ManageFace> {
                     course: c,
                     inList: _inList.contains(c.id),
                     onTap: () => _toggle(c),
+                    onRemove: () => _toggle(c),
                   ),
                 ),
               if (_othersTotal > _others.length)
@@ -1652,13 +1700,30 @@ class _ManageFaceState extends State<_ManageFace> {
   }
 }
 
-/// One desk course row: checkbox + code badge + title + meta.
+/// One desk course row: checkbox + code badge + title + meta + (for
+/// courses already in the list) a small remove key on the RIGHT-HAND
+/// TIP of the card - founder 2026-10-20: "make it easy for users to
+/// remove their courses by listing their courses on the add/remove
+/// courses page with each course the user is already taking with a
+/// cancel ❌ button, a small one on the RHS tip of the course card".
+/// The selected style stays the calm wash (seed 8% face + seed border)
+/// so the title and meta stay readable in EVERY appearance colour.
 class _DeskRow extends StatelessWidget {
-  const _DeskRow({required this.course, required this.inList, required this.onTap});
+  const _DeskRow({
+    required this.course,
+    required this.inList,
+    required this.onTap,
+    this.onRemove,
+  });
 
   final DeskCourse course;
   final bool inList;
   final VoidCallback onTap;
+
+  /// Non-null only for rows backed by the student's real list: the ❌
+  /// key at the card's right tip removes the course (a tap here must
+  /// NOT also toggle the row, so it carries its own gesture).
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -1732,6 +1797,33 @@ class _DeskRow extends StatelessWidget {
               ],
             ),
           ),
+          // the small ❌ at the right-hand tip of taken courses
+          if (inList && onRemove != null) ...<Widget>[
+            const SizedBox(width: 10),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onRemove,
+              child: Container(
+                width: 26,
+                height: 26,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: RenanceColors.cardinal.withValues(alpha: 0.10),
+                  border: Border.all(
+                    color: RenanceColors.cardinal.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                child: const MsIcon(
+                  'close',
+                  size: 15,
+                  color: RenanceColors.cardinal,
+                  wght: 700,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

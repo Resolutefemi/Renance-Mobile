@@ -530,9 +530,14 @@ class _SchoolHeroCard extends StatelessWidget {
                 radius: BorderRadius.circular(13),
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                face: context.heroCta,
-                onFace: context.onHeroCta,
-                edge: mixTowardBlack(context.heroCta, 0.68),
+                // The founder's 2026-10-20 colour fix: the desk CTA wears
+                // the SAME token as the logo keycap and the sparkle FAB -
+                // the vivid Renance green (#10da11) in stock tiers, the
+                // seed colour when the student picked one - never a
+                // derived/darker variant.
+                face: context.primary,
+                onFace: context.onPrimary,
+                edge: mixTowardBlack(context.primary, 0.68),
                 onPressed: onOpen,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

@@ -69,16 +69,17 @@ class _AiSparklePainter extends CustomPainter {
 }
 
 /// The floating Renance AI entry (founder directive): bottom-right of
-/// the HOME tab only. The founder's 2026-10-20 3D pass: the button is a
-/// RICH physical keycap, never a flat sticker -
+/// the HOME tab only. The founder's 2026-10-20 3D pass, colour-corrected
+/// the same day ("change the colour back to the Renance default green
+/// colour and other buttons that you changed their colour to the glassy
+/// top gloss too") - still a RICH physical keycap, never a flat sticker:
 ///
-///   * a 135deg lighting gradient face (hero-cta recipe:
-///     color-mix(primary 82%, #fff) at the top-right),
+///   * a FLAT primary face (the vivid #10da11, seed when live) - no
+///     lighting gradient, no glassy top lip, exactly like the desk CTA,
 ///   * a hard 4px extruded bottom edge (color-mix(primary 68%, #000))
 ///     that collapses to 2px on press while the face sinks 2px,
 ///   * a 1px black/10 ring + the web's soft 0 6px 20px shadow AND a
-///     wide green bloom - three stacked shadow layers,
-///   * the glassy inner top lip highlight the keycap logo wears.
+///     wide green bloom - three stacked shadow layers.
 class AiFloatingButton extends StatefulWidget {
   const AiFloatingButton({super.key, required this.onTap});
 
@@ -94,7 +95,6 @@ class _AiFloatingButtonState extends State<AiFloatingButton> {
   @override
   Widget build(BuildContext context) {
     final Color face = context.primary;
-    final Color faceLight = Color.lerp(face, Colors.white, 0.18)!;
     final Color edge = mixTowardBlack(face, 0.68);
     const double size = 56; // web h-14 w-14
     final double lift = _pressing ? 2.0 : 4.0;
@@ -149,30 +149,14 @@ class _AiFloatingButtonState extends State<AiFloatingButton> {
                   ),
                 ),
               ),
-              // the lighting gradient face + glassy top lip
+              // the FLAT primary face (gloss removed with the founder's
+              // 2026-10-20 colour fix - the lighting gradient + top lip
+              // read as a lighter glassy green instead of the brand
+              // green; the ring below is the only overlay left)
               Positioned.fill(
                 child: ClipOval(
                   child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomLeft,
-                        end: Alignment.topRight,
-                        colors: <Color>[face, faceLight],
-                      ),
-                    ),
-                    child: const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          stops: <double>[0, 0.45],
-                          colors: <Color>[
-                            Color(0x40FFFFFF),
-                            Color(0x00FFFFFF),
-                          ],
-                        ),
-                      ),
-                    ),
+                    decoration: BoxDecoration(color: face),
                   ),
                 ),
               ),

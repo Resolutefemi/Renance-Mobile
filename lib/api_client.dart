@@ -1738,17 +1738,50 @@ class ApiClient {
   }
 
   /// POST /learn/ai-match - paste course titles, get grounded matches.
+  ///
+  /// Retry-hardened (founder report 2026-10-20: "the find my courses
+  /// with ai is not working"): the pass is a pure READ (a catalogue
+  /// search - nothing is written), so unlike other POSTs a silent
+  /// second attempt is safe. Probed live: the endpoint answers 200 in
+  /// 18-29s when warm, but the FIRST calls after the host wakes up
+  /// were dying as bare 502s (empty body, ~30-38s) before settling.
+  /// One quiet retry turns that wake-up churn into a win instead of a
+  /// dead finder; 5xx and network faults retry, 4xx (auth, bad body)
+  /// surfaces immediately.
   Future<List<AIMatchLine>> learnAiMatch(String text) async {
-    final dynamic data = await _send(
-      'POST',
-      '/learn/ai-match',
-      body: <String, dynamic>{'text': text},
-      timeout: const Duration(seconds: 90),
+    const Duration pause = Duration(milliseconds: 1600);
+    for (int attempt = 1; attempt <= 2; attempt++) {
+      try {
+        final dynamic data = await _send(
+          'POST',
+          '/learn/ai-match',
+          body: <String, dynamic>{'text': text},
+          timeout: const Duration(seconds: 90),
+        );
+        final Map<String, dynamic> j = (data as Map).cast<String, dynamic>();
+        return ((j['lines'] ?? const <dynamic>[]) as List<dynamic>)
+            .map((dynamic e) =>
+                AIMatchLine.fromJson((e as Map).cast<String, dynamic>()))
+            .toList();
+      } on ApiException catch (e) {
+        final bool retryable = e.statusCode >= 500;
+        if (retryable && attempt < 2) {
+          await Future<void>.delayed(pause);
+          continue;
+        }
+        rethrow;
+      } on NetworkException {
+        if (attempt < 2) {
+          await Future<void>.delayed(pause);
+          continue;
+        }
+        rethrow;
+      }
+    }
+    // Unreachable: the loop returns or throws on every path.
+    throw NetworkException(
+      'Renance servers are unreachable. Check your connection and try again.',
     );
-    final Map<String, dynamic> j = (data as Map).cast<String, dynamic>();
-    return ((j['lines'] ?? const <dynamic>[]) as List<dynamic>)
-        .map((dynamic e) => AIMatchLine.fromJson((e as Map).cast<String, dynamic>()))
-        .toList();
   }
 
   /// GET /learn/departments - the department list for an institution

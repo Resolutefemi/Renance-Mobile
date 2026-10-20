@@ -106,17 +106,13 @@ class _TactileButtonState extends State<TactileButton> {
       decoration: BoxDecoration(
         color: face,
         borderRadius: widget.radius,
-        // the keycap gloss - a glassy top lip so the face reads as a lit
-        // 3D key, not a flat pill (the same sheen RenanceKeycap wears).
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          stops: const <double>[0, 0.55],
-          colors: <Color>[
-            Colors.white.withValues(alpha: 0.30),
-            Colors.white.withValues(alpha: 0),
-          ],
-        ),
+        // NO keycap gloss here (founder 2026-10-20: "change the colour
+        // back to the Renance default green colour and other buttons
+        // that you changed their colour to the glassy top gloss too"):
+        // the white top-lip gradient read as a lighter, glassy face and
+        // buried the default green. Keys are FLAT token colour with the
+        // extruded edge - the gloss stays on RenanceKeycap (the logo)
+        // only. The 3D press physics below are untouched.
         border: white ? Border.all(color: widget.outline!, width: 2) : null,
         boxShadow: enabled
             ? <BoxShadow>[

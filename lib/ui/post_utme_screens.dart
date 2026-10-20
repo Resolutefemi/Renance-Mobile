@@ -91,6 +91,9 @@ class PostUtmeHomeTab extends StatelessWidget {
             onFace: context.onHeroCard,
             padding: const EdgeInsets.all(14),
             child: Stack(
+              // Clip.none: blobs clip once at HeroCard's anti-aliased
+              // ClipRRect - a hard Stack clip sawtooths the arcs.
+              clipBehavior: Clip.none,
               children: <Widget>[
                 Positioned(
                   top: -76,

@@ -1386,6 +1386,9 @@ class _HeroCard extends StatelessWidget {
       onFace: context.onHeroCard,
       padding: const EdgeInsets.all(14),
       child: Stack(
+        // Clip.none: blobs overflow to HeroCard's anti-aliased ClipRRect
+        // - a hard Stack clip here sawtooths the arcs (2026-10-20).
+        clipBehavior: Clip.none,
         children: <Widget>[
           Positioned(
             top: -76,

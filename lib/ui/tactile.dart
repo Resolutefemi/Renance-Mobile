@@ -106,9 +106,32 @@ class _TactileButtonState extends State<TactileButton> {
       decoration: BoxDecoration(
         color: face,
         borderRadius: widget.radius,
+        // the keycap gloss - a glassy top lip so the face reads as a lit
+        // 3D key, not a flat pill (the same sheen RenanceKeycap wears).
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: const <double>[0, 0.55],
+          colors: <Color>[
+            Colors.white.withValues(alpha: 0.30),
+            Colors.white.withValues(alpha: 0),
+          ],
+        ),
         border: white ? Border.all(color: widget.outline!, width: 2) : null,
         boxShadow: enabled
-            ? [BoxShadow(color: edge, offset: Offset(0, lift), blurRadius: 0)]
+            ? <BoxShadow>[
+                // the hard extruded ledge - the key's visible side
+                BoxShadow(
+                    color: edge, offset: Offset(0, lift), blurRadius: 0),
+                // the soft ambient depth UNDER the ledge - the key
+                // visibly floats off the surface, Duolingo-style
+                BoxShadow(
+                  color: edge.withValues(alpha: 0.45),
+                  offset: Offset(0, lift + 6),
+                  blurRadius: 12,
+                  spreadRadius: -2,
+                ),
+              ]
             : null,
       ),
       padding:
@@ -210,8 +233,13 @@ class HeroCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
-        // inset 0 2px 0 on-hero/12 - the glassy inner top lip
+        clipBehavior: Clip.antiAlias,
+        // inset 0 2px 0 on-hero/12 - the glassy inner top lip.
+        // Clip.none here + on every inner Stack: corner ornaments
+        // overflow their Stacks on purpose and are clipped ONCE, here,
+        // with anti-aliasing - a hard Stack edge would sawtooth them.
         child: Stack(
+          clipBehavior: Clip.none,
           children: <Widget>[
             Positioned.fill(
               child: DecoratedBox(

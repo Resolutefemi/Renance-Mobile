@@ -411,31 +411,39 @@ class _SchoolHeroCard extends StatelessWidget {
       onFace: onHero,
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
       child: Stack(
+        // Clip.none: the corner blobs MUST overflow this Stack's bounds
+        // and be clipped once by HeroCard's anti-aliased ClipRRect - a
+        // hard Stack clip here sawtooths every arc that crosses it.
+        clipBehavior: Clip.none,
         children: <Widget>[
-          // corner blobs - the screenshot's ornaments: a big quarter
-          // circle behind the badge corner and a large blob under the
-          // CTA corner, both clearly visible
+          // corner blobs - the target screenshot's ornaments, measured
+          // off it: a big quarter circle behind the badge corner (arc
+          // dips to ~48% card height, ~85px of it visible leftward)
+          // and a large blob whose mass shows BELOW the CTA's bottom
+          // left, with a small notch peeking above the button's left
+          // end. Offsets live in the padded content space (padL 18,
+          // padT 16) and pin to their corners on any card width.
           Positioned(
-            top: -70,
-            right: -70,
+            top: -95,
+            right: -103,
             child: Container(
-              width: 200,
-              height: 200,
+              width: 170,
+              height: 170,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: onHero.withValues(alpha: 0.12),
+                color: onHero.withValues(alpha: 0.14),
               ),
             ),
           ),
           Positioned(
-            bottom: -56,
-            left: -52,
+            bottom: -83,
+            left: -87,
             child: Container(
               width: 150,
               height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: onHero.withValues(alpha: 0.12),
+                color: onHero.withValues(alpha: 0.14),
               ),
             ),
           ),

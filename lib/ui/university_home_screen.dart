@@ -380,12 +380,14 @@ class UniversityHomeTab extends StatelessWidget {
 
 // ----------------------------------------------------------------- hero
 
-/// The school hero card - the exact web twin of the dashboard's
-/// UniversityHome hero (apps/web/app/dashboard/page.tsx): the
-/// .hero-card 3D recipe, the "School Desk" mono eyebrow + school-short
-/// badge, the institution title, the live "X courses · Y questions"
-/// line and the 44px "Open your semester desk" CTA. The two corner
-/// blobs (on-hero/12) stay from the founder's ornament directive.
+/// The school hero card - the founder's 2026-10-20 screenshot recipe
+/// (the web dashboard's UniversityHome hero, apps/web/app/dashboard/
+/// page.tsx): the .hero-card 3D ledge, the "School Desk" mono eyebrow,
+/// the SOLID school badge (charcoal pill, white ink - the screenshot's
+/// badge reads as a filled chip, not the old /15 translucent one), the
+/// big institution title, the live "X courses · Y questions" line and
+/// the tall full-width "Open your semester desk" CTA. The corner blobs
+/// run at the screenshot's visible strength - big, clearly present.
 class _SchoolHeroCard extends StatelessWidget {
   const _SchoolHeroCard({
     required this.syncing,
@@ -407,17 +409,18 @@ class _SchoolHeroCard extends StatelessWidget {
     return HeroCard(
       face: context.heroCard,
       onFace: onHero,
-      padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
       child: Stack(
         children: <Widget>[
-          // corner blobs - the same clipped ornaments the web pins
-          // (-top-14 -right-14 / -bottom-12 -left-10 = -56/-56, -48/-40)
+          // corner blobs - the screenshot's ornaments: a big quarter
+          // circle behind the badge corner and a large blob under the
+          // CTA corner, both clearly visible
           Positioned(
-            top: -56,
-            right: -56,
+            top: -70,
+            right: -70,
             child: Container(
-              width: 128,
-              height: 128,
+              width: 200,
+              height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: onHero.withValues(alpha: 0.12),
@@ -425,11 +428,11 @@ class _SchoolHeroCard extends StatelessWidget {
             ),
           ),
           Positioned(
-            bottom: -48,
-            left: -40,
+            bottom: -56,
+            left: -52,
             child: Container(
-              width: 96,
-              height: 96,
+              width: 150,
+              height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: onHero.withValues(alpha: 0.12),
@@ -447,32 +450,34 @@ class _SchoolHeroCard extends StatelessWidget {
                   Text(
                     'SCHOOL DESK',
                     style: RenanceText.labelMono.copyWith(
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: 2.0,
+                      letterSpacing: 2.2,
                       color: context.heroMuted,
                     ),
                   ),
-                  // the web's school badge: rounded-full
-                  // bg-dark-text-primary/15, school icon 13px + short
+                  // the screenshot's badge: SOLID ink pill - white icon
+                  // + short code on charcoal (light tier), inverted on
+                  // the dark tiers the same way the hero face inverts
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 11, vertical: 6),
                     decoration: BoxDecoration(
-                      color: onHero.withValues(alpha: 0.15),
+                      color: onHero,
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         MsIcon('school',
-                            size: 13, color: onHero, fill: true),
-                        const SizedBox(width: 4),
+                            size: 15, color: context.heroCard, fill: true),
+                        const SizedBox(width: 5),
                         Text(
                           syncing ? 'SYNCING' : heroShort,
                           style: RenanceText.labelMono.copyWith(
-                            fontSize: 11,
-                            color: onHero,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: context.heroCard,
                           ),
                         ),
                       ],
@@ -480,43 +485,42 @@ class _SchoolHeroCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              // title: text-xl font-bold tracking-tight
+              const SizedBox(height: 10),
+              // title: text-xl font-bold tracking-tight, screenshot scale
               Text(
                 heroName,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontFamily: 'Nunito',
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: -0.5,
+                  letterSpacing: -0.6,
                   height: 1.15,
                   color: Color(0xFF3C3C46),
                 ).copyWith(color: onHero),
               ),
-              const SizedBox(height: 2),
-              // subtitle: text-[13px] font-semibold hero-muted
+              const SizedBox(height: 4),
+              // subtitle: the live counts line, screenshot scale
               Text(
                 subtitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: 'Nunito',
-                  fontSize: 13,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: context.heroMuted,
                 ),
               ),
-              const SizedBox(height: 12),
-              // CTA: h-11 rounded-[10px] bg-hero-cta, school icon 18px.
-              // The web's tactile rule paints a.bg-hero-cta at
-              // font-weight 800 with the 4px edge - TactileButton carries
-              // the edge; the label rides w800 to match.
+              const SizedBox(height: 16),
+              // CTA: the screenshot's big full-width desk button - 52px
+              // tall, 16px extrabold label, 21px school icon, 13px
+              // radius, the 4px darker-green tactile edge underneath.
               TactileButton(
-                height: 44,
-                radius: BorderRadius.circular(10),
-                fontSize: 14,
+                height: 52,
+                radius: BorderRadius.circular(13),
+                fontSize: 16,
                 fontWeight: FontWeight.w800,
                 face: context.heroCta,
                 onFace: context.onHeroCta,
@@ -525,8 +529,8 @@ class _SchoolHeroCard extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    const MsIcon('school', size: 18, fill: true),
-                    const SizedBox(width: 8),
+                    const MsIcon('school', size: 21, fill: true),
+                    const SizedBox(width: 9),
                     // The web CTA label is static - "Open your semester
                     // desk" even when no school is picked yet (the
                     // picker opens behind it).

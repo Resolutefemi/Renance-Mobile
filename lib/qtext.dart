@@ -659,6 +659,22 @@ List<InlineSpan> buildQuestionSpans(String html, TextStyle base) {
   return p.spans;
 }
 
+/// True when [spans] carry at least one non-whitespace character in a
+/// TextSpan (WidgetSpans like maths/figures always count as content).
+bool _spansCarryText(List<InlineSpan> spans) {
+  for (final InlineSpan span in spans) {
+    if (span is WidgetSpan) return true;
+    if (span is TextSpan) {
+      final String t = span.text ?? '';
+      if (t.trim().isNotEmpty) return true;
+      if (span.children != null && _spansCarryText(span.children!)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 /// Rich, self-contained question text (HTML + LaTeX aware).
 class QuestionText extends StatelessWidget {
   const QuestionText(
@@ -678,8 +694,19 @@ class QuestionText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle base =
-        (style ?? const TextStyle()).copyWith(height: 1.45);
+    // Founder bug report 2026-10-20 (the invisible section body): the
+    // RichText paths below receive NO inherited colour - RichText does
+    // not read the DefaultTextStyle the way Text does, so a style
+    // without an explicit color painted the body in white on the white
+    // page. Every section body that carried HTML or LaTeX (every
+    // calculation subject's worked example) vanished. Resolve the
+    // colour chain here: explicit style colour wins, else the ambient
+    // DefaultTextStyle colour, else the theme ink.
+    final Color? inherited = DefaultTextStyle.of(context).style.color;
+    final TextStyle base = (style ?? const TextStyle()).copyWith(
+      height: 1.45,
+      color: (style?.color ?? inherited) ?? const Color(0xFF3C3C46),
+    );
     if (!text.contains('<')) {
       // plain text (possibly with LaTeX): keep line breaks, typeset the
       // math runs with the KaTeX-grade engine.
@@ -703,9 +730,26 @@ class QuestionText extends StatelessWidget {
         overflow: overflow ?? TextOverflow.clip,
       );
     }
+    final List<InlineSpan> spans = buildQuestionSpans(text, base);
+    if (!_spansCarryText(spans)) {
+      // Never render a silent blank: if the HTML parse produced nothing
+      // visible (a body wrapped in dropped tags, an image-only block,
+      // an upstream dump artefact), fall back to the stripped plain
+      // text so the student always sees the content.
+      final String stripped = decodeEntities(
+        text.replaceAll(RegExp(r'<[^>]*>'), ' ').trim(),
+      );
+      return Text(
+        stripped.isEmpty ? text.trim() : stripped,
+        style: base,
+        textAlign: textAlign,
+        maxLines: maxLines,
+        overflow: overflow,
+      );
+    }
     return RichText(
       text: TextSpan(
-        children: buildQuestionSpans(text, base),
+        children: spans,
         style: base,
       ),
       textAlign: textAlign,

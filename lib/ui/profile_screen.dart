@@ -6,11 +6,13 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../api_client.dart';
 import '../controllers.dart';
 import '../learn_controller.dart';
+import '../learn_models.dart' show SocialConnections;
 import '../models.dart';
 import '../storage.dart';
 import 'downloads_screen.dart';
@@ -53,7 +55,6 @@ class ProfileScreen extends StatelessWidget {
         ? me!.profile!.fullName
         : (me?.user.username ?? 'Scholar');
     final String username = me?.user.username ?? 'renance';
-    final int level = gam?.state.level ?? 1;
     final int xp = gam?.state.totalXp ?? 0;
 
     return ListView(
@@ -79,24 +80,35 @@ class ProfileScreen extends StatelessWidget {
                     clipBehavior: Clip.none,
                     children: <Widget>[
                       AvatarCircle(name: name, size: 80),
+                      // The web's pencil (founder directive 2026-10-17,
+                      // mirrored 2026-10-20: it REPLACES the level
+                      // badge): a 28px green key anchored hard to the
+                      // avatar's bottom-right edge (no overhang), 2px
+                      // card ring, edit glyph. Opens the identity
+                      // editor - username + display name.
                       Positioned(
-                        bottom: -4,
-                        right: -4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: context.inverseChip,
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                                color: context.card, width: 2),
-                          ),
-                          child: Text(
-                            'Lvl $level',
-                            style: RenanceText.labelMono.copyWith(
-                              fontSize: 11,
-                              color: context.onInverseChip,
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: () => _openIdentityEditor(context),
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: context.primary,
+                              border: Border.all(color: context.card, width: 2),
+                              boxShadow: <BoxShadow>[
+                                BoxShadow(
+                                  color: mixTowardBlack(context.primary, 0.68),
+                                  offset: const Offset(0, 2),
+                                  blurRadius: 0,
+                                ),
+                              ],
                             ),
+                            child: MsIcon('edit',
+                                size: 14, color: context.onPrimary, fill: true),
                           ),
                         ),
                       ),
@@ -194,44 +206,17 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        // Follow strip: your people (followers + following management).
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            children: <Widget>[
-              // on-surface-variant token (was a fixed #777777 that sank
-              // into the dark canvas).
-              MsIcon('group', size: 18, color: context.textSecondary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Followers and following',
-                  style: RenanceText.caption.copyWith(
-                    color: context.textSecondary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              GestureDetector(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const SocialManagementScreen(),
-                  ),
-                ),
-                child: Text(
-                  'View all',
-                  style: TextStyle(
-                    fontFamily: 'Nunito',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: context.primary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
+        // Follow strip (the web's exact card, founder 2026-10-14/15):
+        // followers and following read DIRECTLY on the profile - the
+        // old "Followers and following ... View all" row is gone.
+        // Tapping a half opens the lists on the management page.
+        _FollowStrip(),
+        const SizedBox(height: 12),
+        // Invite friends (the web's referral card): the REN loop.
+        if (me?.entitlement?.referralCode.isNotEmpty ?? false)
+          _InviteCard(code: me!.entitlement!.referralCode),
+        if (me?.entitlement?.referralCode.isNotEmpty ?? false)
+          const SizedBox(height: 16),
         // Shop (web /profile#shop): the gem wallet + the item list.
         Container(
           padding: const EdgeInsets.all(16),
@@ -424,6 +409,315 @@ class ProfileScreen extends StatelessWidget {
         ),
         const SizedBox(height: 24),
       ],
+    );
+  }
+}
+
+/// The identity editor behind the avatar pencil: username + display
+/// name, the mobile twin of the web's openIdentityEditor sheet. Saving
+/// PUTs /me/profile and refreshes the student so the header re-renders.
+Future<void> _openIdentityEditor(BuildContext context) async {
+  final StudentController student = context.read<StudentController>();
+  final MeResult? me = student.me;
+  final Profile? profile = me?.profile;
+  final TextEditingController nameCtrl =
+      TextEditingController(text: profile?.fullName ?? '');
+  final TextEditingController userCtrl =
+      TextEditingController(text: me?.user.username ?? '');
+
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: context.card,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (BuildContext sheetContext) {
+      bool busy = false;
+      return StatefulBuilder(
+        builder: (BuildContext sheetContext,
+            void Function(void Function()) setSheet) {
+          Future<void> save() async {
+            final String fullName = nameCtrl.text.trim();
+            final String username = userCtrl.text.trim();
+            if (fullName.isEmpty || username.isEmpty || busy) return;
+            setSheet(() => busy = true);
+            try {
+              await sheetContext.read<ApiClient>().updateProfile(
+                    fullName: fullName,
+                    institution: profile?.institution ?? '',
+                    gradeLevel: profile?.gradeLevel ?? '',
+                    exams: profile?.exams ?? const <String>[],
+                    targetYear: profile?.targetYear,
+                    username: username == (me?.user.username ?? '')
+                        ? null
+                        : username,
+                  );
+              await student.refresh();
+              if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Profile saved')),
+                );
+              }
+            } catch (_) {
+              if (sheetContext.mounted) setSheet(() => busy = false);
+              if (sheetContext.mounted) {
+                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                  const SnackBar(
+                      content:
+                          Text('Could not save - check your connection')),
+                );
+              }
+            }
+          }
+
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+                20, 20, 20, 20 + MediaQuery.paddingOf(sheetContext).bottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text('Edit your profile', style: RenanceText.sectionTitle),
+                const SizedBox(height: 4),
+                Text(
+                  'Your display name and @handle - the identity every '
+                  'leaderboard, feed and arena seat carries.',
+                  style: RenanceText.caption
+                      .copyWith(color: context.textSecondary),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nameCtrl,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Display name',
+                    prefixIcon: MsIcon('person', size: 20),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: userCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    prefixIcon: MsIcon('alternate_email', size: 20),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TactileButton(
+                  onPressed: busy ? null : save,
+                  height: 48,
+                  child: Text(busy ? 'Saving...' : 'Save changes'),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+/// The web's follow strip: followers and following read DIRECTLY on the
+/// profile (founder 2026-10-14/15), two halves of one card - group key
+/// + count + label | person_add key + count + label. Tapping a half
+/// opens the management page (the mobile /profile/social).
+class _FollowStrip extends StatefulWidget {
+  const _FollowStrip();
+
+  @override
+  State<_FollowStrip> createState() => _FollowStripState();
+}
+
+class _FollowStripState extends State<_FollowStrip> {
+  Future<SocialConnections>? _conns;
+
+  @override
+  void initState() {
+    super.initState();
+    _conns = context.read<ApiClient>().socialConnections();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.card,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+              color: Color(0x14141C2D), blurRadius: 3, offset: Offset(0, 1)),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: FutureBuilder<SocialConnections>(
+        future: _conns,
+        builder: (BuildContext context,
+            AsyncSnapshot<SocialConnections> snap) {
+          final int followers = snap.data?.followers.length ?? 0;
+          final int following = snap.data?.following.length ?? 0;
+          return Row(
+            children: <Widget>[
+              Expanded(
+                child: InkWell(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SocialManagementScreen(),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        MsIcon('group', size: 19, color: context.primary),
+                        const SizedBox(width: 8),
+                        Text('$followers',
+                            style: TextStyle(
+                              fontFamily: 'Nunito',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: context.ink,
+                            )),
+                        const SizedBox(width: 6),
+                        Text('Followers',
+                            style: TextStyle(
+                              fontFamily: 'Nunito',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: context.textSecondary,
+                            )),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // the web's my-3 w-px bg-outline-light/40 divider
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 1,
+                color: context.outlineLight.withValues(alpha: 0.40),
+              ),
+              Expanded(
+                child: InkWell(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SocialManagementScreen(),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        MsIcon('person_add',
+                            size: 19, color: RenanceColors.macawDark),
+                        const SizedBox(width: 8),
+                        Text('$following',
+                            style: TextStyle(
+                              fontFamily: 'Nunito',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: context.ink,
+                            )),
+                        const SizedBox(width: 6),
+                        Text('Following',
+                            style: TextStyle(
+                              fontFamily: 'Nunito',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: context.textSecondary,
+                            )),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// The web's invite card: redeem key in the primary wash, the REN
+/// invitation line, the mono referral code and the Copy link key
+/// (clipboard + toast).
+class _InviteCard extends StatelessWidget {
+  const _InviteCard({required this.code});
+
+  final String code;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.card,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+              color: Color(0x14141C2D), blurRadius: 3, offset: Offset(0, 1)),
+        ],
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: context.primary.withValues(alpha: 0.15),
+            ),
+            child: MsIcon('redeem',
+                size: 20, color: context.primaryInk, fill: true),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text('Invite friends, earn REN',
+                    style: TextStyle(
+                      fontFamily: 'Nunito',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: context.ink,
+                    )),
+                const SizedBox(height: 2),
+                Text(code,
+                    style: RenanceText.labelMono.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.1,
+                      color: context.textSecondary,
+                    )),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          TactileButton(
+            onPressed: () async {
+              await Clipboard.setData(
+                ClipboardData(text: 'https://renance.app/register/?ref=$code'),
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Invite link copied')),
+                );
+              }
+            },
+            expand: false,
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            fontSize: 12,
+            child: const Text('Copy link'),
+          ),
+        ],
+      ),
     );
   }
 }

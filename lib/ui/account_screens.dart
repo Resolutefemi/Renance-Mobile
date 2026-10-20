@@ -157,7 +157,7 @@ class AccountSheet extends StatelessWidget {
                       ],
                     ),
                   ),
-                  TactileBackKey(
+                  SheetBackKey(
                     onTap: () => Navigator.of(context).pop(),
                     icon: 'close',
                   ),

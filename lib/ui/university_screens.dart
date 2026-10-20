@@ -446,7 +446,18 @@ class _UniversityDeskScreenState extends State<UniversityDeskScreen> {
                         textInputAction: TextInputAction.search,
                         decoration: InputDecoration(
                           hintText: 'Search courses - try "GST 112"',
-                          prefixIcon: const MsIcon('search', size: 20),
+                          // Founder bug (screenshot 4, 2026-10-20): the
+                          // default prefixIcon constraints pinned the
+                          // glyph ON the field's left border. The web
+                          // field insets the icon 10px inside a 36px
+                          // hit area - reproduce exactly that.
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.only(left: 10),
+                            child: MsIcon('search',
+                                size: 18, color: context.textSecondary),
+                          ),
+                          prefixIconConstraints: const BoxConstraints(
+                              minWidth: 36, minHeight: 36),
                           suffixIcon: _query.isEmpty
                               ? null
                               : IconButton(
@@ -459,7 +470,7 @@ class _UniversityDeskScreenState extends State<UniversityDeskScreen> {
                                 ),
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 2),
+                              horizontal: 12, vertical: 0),
                         ),
                         style: RenanceText.bodyBase,
                       ),

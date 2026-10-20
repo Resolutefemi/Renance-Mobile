@@ -442,18 +442,19 @@ class _KeycapPainter extends CustomPainter {
       old.face != face || old.edge != edge || old.letter != letter;
 }
 
-/// The web's .back-key (globals.css): the 3D circular back/close key
-/// for overlay and sheet top bars - "the back button should be
-/// Duolingo's own, and 3D" (founder directive). 38px circle, 2px
-/// outline, card face, a hard 3px ledge; pressing sinks 2px while the
-/// ledge collapses to 1px. The glyph is the site's own Material
-/// Symbols Outlined at the header settings.
+/// The web's PageBar back key (components/page-bar.tsx): the flat 36px
+/// rounded-xl square with the bare arrow_back glyph - NO circle, NO
+/// border, NO ledge. Founder directive 2026-10-20 (repeated twice):
+/// "change all those previous buttons design at the top LHS on the
+/// mobile app to match the website own in all pages" - every PAGE now
+/// wears exactly this key. The 3D circle stays where the website itself
+/// still plays it (overlay/sheet top bars) - see [SheetBackKey].
 class TactileBackKey extends StatefulWidget {
   const TactileBackKey({
     super.key,
     this.onTap,
     this.icon = 'arrow_back',
-    this.size = 38,
+    this.size = 36,
     this.semanticLabel,
   });
 
@@ -469,6 +470,71 @@ class TactileBackKey extends StatefulWidget {
 }
 
 class _TactileBackKeyState extends State<TactileBackKey> {
+  bool _pressing = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // the web: h-9 w-9 rounded-xl text-on-surface hover:bg-polar -
+    // pressing paints the calm polar wash; nothing lifts or sinks.
+    return Semantics(
+      button: true,
+      label: widget.semanticLabel,
+      child: GestureDetector(
+        onTapDown: widget.onTap != null ? (_) => setState(() => _pressing = true) : null,
+        onTapCancel: widget.onTap != null ? () => setState(() => _pressing = false) : null,
+        onTapUp: widget.onTap != null ? (_) => setState(() => _pressing = false) : null,
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 90),
+          width: widget.size,
+          height: widget.size,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _pressing
+                ? (context.darkChrome
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : const Color(0xFFF0F4F4)) // the polar wash
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: MsIcon(
+            widget.icon,
+            size: widget.size * 0.61,
+            wght: 700,
+            color: context.ink,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The web's .back-key (globals.css): the 3D circular back/close key
+/// reserved for OVERLAY and SHEET top bars - "the back button should be
+/// Duolingo's own, and 3D" (founder directive). 38px circle, 2px
+/// outline, card face, a hard 3px ledge; pressing sinks 2px while the
+/// ledge collapses to 1px. The lesson player's close key, the CBT
+/// player's exit, the explanation sheet - the exact places the website
+/// still paints the circle.
+class SheetBackKey extends StatefulWidget {
+  const SheetBackKey({
+    super.key,
+    this.onTap,
+    this.icon = 'arrow_back',
+    this.size = 38,
+    this.semanticLabel,
+  });
+
+  final VoidCallback? onTap;
+  final String icon;
+  final double size;
+  final String? semanticLabel;
+
+  @override
+  State<SheetBackKey> createState() => _SheetBackKeyState();
+}
+
+class _SheetBackKeyState extends State<SheetBackKey> {
   bool _pressing = false;
 
   @override

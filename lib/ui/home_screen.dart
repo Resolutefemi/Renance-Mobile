@@ -46,7 +46,7 @@ import 'tutor_screen.dart';
 import 'exam_screen.dart';
 import 'exam_history_screen.dart';
 import 'exam_mode_setup_screen.dart';
-import 'library_screen.dart';
+import 'packs_screen.dart';
 import 'gamification_hub_screen.dart';
 import 'onboarding_sheet.dart';
 import 'feature_tour_sheet.dart';
@@ -231,9 +231,11 @@ class _HomeScreenState extends State<HomeScreen> {
       case 0:
         setState(() => _tab = 0);
       case 1:
+        // The web's /packs twin (founder directive 2026-10-20: the old
+        // black practice-library screen is gone from the codebase).
         Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (_) => LibraryScreen(onOpenExam: _openExam),
+            builder: (_) => PacksScreen(onOpenExam: _openExam),
           ),
         );
       case 2:
@@ -1140,11 +1142,12 @@ class _LauncherTab extends StatelessWidget {
                   msIcon: 'inventory_2',
                   label: 'Question Pack',
                   // The web's href for this tile is /packs - the PACK
-                  // SHELF ("Every pack, ready offline"), not the course
-                  // hub. The mobile twin of /packs is the LibraryScreen.
+                  // SHELF ("Every pack, ready offline"). The mobile twin
+                  // is the PacksScreen (the old black library screen is
+                  // retired from the codebase, founder 2026-10-20).
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => LibraryScreen(onOpenExam: onOpenExam),
+                      builder: (_) => PacksScreen(onOpenExam: onOpenExam),
                     ),
                   ),
                 ),

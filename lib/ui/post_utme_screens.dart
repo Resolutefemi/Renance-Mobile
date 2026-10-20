@@ -22,8 +22,8 @@ import 'exam_screen.dart';
 import 'home_screen.dart' show LauncherTile, showMoreSheet;
 import 'leaderboard_screen.dart';
 import 'lessons_screen.dart';
-import 'library_screen.dart';
 import 'msymbols.dart';
+import 'packs_screen.dart';
 import 'renance_logo.dart';
 import 'study_plan_screen.dart';
 import 'study_setup_screen.dart';
@@ -250,10 +250,12 @@ class PostUtmeHomeTab extends StatelessWidget {
                 child: LauncherTile(
                   msIcon: 'inventory_2',
                   label: 'Question Pack',
-                  // The web's href is /packs - the pack shelf.
+                  // The web's href is /packs - the pack shelf (the mobile
+                  // twin is PacksScreen; the old black library screen is
+                  // retired, founder 2026-10-20).
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => LibraryScreen(
+                      builder: (_) => PacksScreen(
                         onOpenExam: (BuildContext context, ExamMeta exam,
                                 {int? durationOverrideMinutes,
                                 bool untimed = false,

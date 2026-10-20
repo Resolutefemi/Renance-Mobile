@@ -299,7 +299,7 @@ class _RoundBack extends StatelessWidget {
         shape: BoxShape.circle,
         color: context.cardLow,
       ),
-      child: TactileBackKey(icon: 'arrow_back', onTap: onBack),
+      child: SheetBackKey(icon: 'arrow_back', onTap: onBack),
     );
   }
 }

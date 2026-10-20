@@ -72,29 +72,37 @@ class LearnPathView extends StatelessWidget {
         // the gradient course header scrolls away normally
         SliverToBoxAdapter(child: _CourseBanner(path: path, onManage: onManageCourses)),
         const SliverToBoxAdapter(child: SizedBox(height: 20)),
-        for (final UnitNode unit in path.units) ...<Widget>[
-          // THE PINNED UNIT BANNER - the structural sub-navbar. A pinned
-          // SliverPersistentHeader keeps the banner at the top edge of
-          // the viewport while its ladder scrolls under it, and the NEXT
-          // unit's banner slides up and pushes this one away - the exact
-          // CSS `position: sticky` push the website plays.
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _UnitBannerDelegate(
-              unit: unit,
-              onChest: () => onOpenChest(unit),
-              onReview: () => onOpenRevision(unit),
-            ),
+        for (final UnitNode unit in path.units)
+          // THE PINNED UNIT BANNER - the structural sub-navbar. Founder
+          // bug report 2026-10-20: bare sibling SliverPersistentHeaders
+          // ALL pin at the viewport top forever (each is its own sliver
+          // whose 50px scroll extent never scrolls past), so every unit
+          // bar piled up under the header and squeezed together.
+          // SliverMainAxisGroup scopes each pinned header to its OWN
+          // unit's extent: the banner pins while its ladder scrolls
+          // under it, and the NEXT unit's banner slides up and pushes it
+          // away - the exact CSS `position: sticky; top-12` push the
+          // website plays.
+          SliverMainAxisGroup(
+            slivers: <Widget>[
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _UnitBannerDelegate(
+                  unit: unit,
+                  onChest: () => onOpenChest(unit),
+                  onReview: () => onOpenRevision(unit),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: _UnitLadder(
+                  path: path,
+                  unit: unit,
+                  onOpenTopic: onOpenTopic,
+                  onOpenRevision: () => onOpenRevision(unit),
+                ),
+              ),
+            ],
           ),
-          SliverToBoxAdapter(
-            child: _UnitLadder(
-              path: path,
-              unit: unit,
-              onOpenTopic: onOpenTopic,
-              onOpenRevision: () => onOpenRevision(unit),
-            ),
-          ),
-        ],
         if (path.generating)
           const SliverToBoxAdapter(child: _GeneratingNode()),
         const SliverToBoxAdapter(child: SizedBox(height: 32)),
@@ -407,14 +415,23 @@ class _UnitLadder extends StatelessWidget {
     final List<TopicNode> topics = path.topics
         .where((TopicNode t) => t.unit == unit.index)
         .toList();
+    // Web: "mt-3 flex flex-col items-center gap-1" - the ladder column
+    // is CENTRED and each node translates around the centre line.
     return Column(
       children: <Widget>[
         for (var i = 0; i < topics.length; i++)
-          _PathNode(
-            topic: topics[i],
-            unit: unit,
-            zigzag: _zigzagOffset(i),
-            onTap: () => onOpenTopic(topics[i]),
+          Padding(
+            // the web ladder's gap-1: 4px between node cards.
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Transform.translate(
+              offset: Offset(_zigzagOffset(i), 0),
+              child: _PathNode(
+                topic: topics[i],
+                unit: unit,
+                zigzag: 0,
+                onTap: () => onOpenTopic(topics[i]),
+              ),
+            ),
           ),
         _RevisionCard(
           unit: unit,
@@ -426,8 +443,12 @@ class _UnitLadder extends StatelessWidget {
     );
   }
 
-  /// The web's ZIGZAG cycle: ml-0 / ml-14 / ml-28 / ml-14 (0/56/112/56).
-  static double _zigzagOffset(int i) => <double>[0, 56, 112, 56][i % 4];
+  /// The web's ZIGZAG cycle relative to the CENTRE line: ml-0 / ml-14 /
+  /// ml-28 / ml-14 (0/56/112/56) on an items-centred column, i.e. the
+  /// node offsets swing -56 / 0 / +56 / 0 around the centre line - the
+  /// exact Duolingo zig-zag the website plays (the old left-anchored
+  /// 40+zigzag rail leaned the whole ladder to one side).
+  static double _zigzagOffset(int i) => <double>[-56, 0, 56, 0][i % 4];
 }
 
 /// One 76px circular node with the offset, bubble and caption.
@@ -471,6 +492,8 @@ class _PathNodeState extends State<_PathNode> {
         ? Colors.white
         : context.textSecondary;
 
+    // Web parity (PathNode): locked nodes wear opacity-70.
+    final double nodeOpacity = t.status == 'locked' ? 0.70 : 1.0;
     return GestureDetector(
       onTapDown: t.isCompleted || t.isCurrent
           ? (_) => setState(() => _pressing = true)
@@ -478,8 +501,8 @@ class _PathNodeState extends State<_PathNode> {
       onTapCancel: () => setState(() => _pressing = false),
       onTapUp: (_) => setState(() => _pressing = false),
       onTap: t.isCompleted || t.isCurrent ? widget.onTap : null,
-      child: Padding(
-        padding: EdgeInsets.only(left: 40 + widget.zigzag, bottom: 14),
+      child: Opacity(
+        opacity: nodeOpacity,
         child: Column(
           // Web PathNode: `flex flex-col items-center` - node, then the
           // CENTERED title, then Perfect!, then the Start bubble. The
@@ -514,12 +537,13 @@ class _PathNodeState extends State<_PathNode> {
                     ],
                   ),
                   child: Center(
-                    child: MsIcon(icon, size: 34, color: iconColor, fill: done || current),
+                    // the web's node glyph: text-[30px]
+                    child: MsIcon(icon, size: 30, color: iconColor, fill: done || current),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             SizedBox(
               width: 190,
               child: Text(

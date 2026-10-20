@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../api_client.dart';
 import '../learn_models.dart';
 import 'blue_tick.dart';
+import 'courses_screen.dart' show LearnPageBar;
 import 'learn_bits.dart';
 import 'msymbols.dart';
 import 'renance_logo.dart';
@@ -195,32 +196,13 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // The web's route: PageBar titled with the scholar's NAME (never
+    // the raw @handle) - components/page-bar.tsx + the 2px rule.
     return Scaffold(
       backgroundColor: context.pageBg,
       body: Column(
         children: <Widget>[
-          SizedBox(height: MediaQuery.paddingOf(context).top),
-          SizedBox(
-            height: 56,
-            child: Row(
-              children: <Widget>[
-                const SizedBox(width: 8),
-                _BackKey(onTap: () => Navigator.of(context).maybePop()),
-                const SizedBox(width: 12),
-                Text(
-                  '@${widget.username}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Nunito',
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: context.ink,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          LearnPageBar(title: _profile?.name ?? 'Profile'),
           Expanded(
             child: _loading
                 ? const Center(child: RenanceMark(size: 40, busy: true))
@@ -230,14 +212,15 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
                             MsIcon('person_off',
-                                size: 44, color: context.textSecondary),
-                            const SizedBox(height: 12),
-                            const Text(
+                                size: 38, color: context.textSecondary),
+                            const SizedBox(height: 8),
+                            Text(
                               'This scholar could not be found.',
                               style: TextStyle(
                                 fontFamily: 'Nunito',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: context.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 14),
@@ -264,240 +247,424 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     final PublicProfile p = _profile!;
     final DateTime joined =
         DateTime.fromMillisecondsSinceEpoch(p.joinedMs);
+    // The web's toLocaleDateString(undefined, {month:'long',...}).
     final String joinedLabel = <String>[
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
     ][joined.month - 1];
+    // The web's learn-tile recipe: 2px outline, 4px extruded ledge.
+    BoxDecoration tile(BuildContext context) => BoxDecoration(
+          color: context.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.outlineVariant, width: 2),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: context.outlineVariant.withValues(alpha: 0.55),
+              offset: const Offset(0, 4),
+              blurRadius: 0,
+            ),
+          ],
+        );
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: <Widget>[
-        Center(child: SocialAvatar(username: p.username, name: p.name, size: 80)),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Flexible(
-              child: Text(
-                p.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+        // Header card - one learn-tile, everything centred inside.
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+          decoration: tile(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              // the 80px avatar (primary face, ink initial) with the
+              // Lvl badge anchored at its bottom-right edge.
+              Stack(
+                clipBehavior: Clip.none,
+                children: <Widget>[
+                  Container(
+                    width: 80,
+                    height: 80,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: context.primary,
+                    ),
+                    child: Text(
+                      p.name.isNotEmpty ? p.name[0].toUpperCase() : '?',
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
+                        color: context.onPrimary,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: -4,
+                    right: -4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: context.primary,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: context.card, width: 2),
+                      ),
+                      child: Text(
+                        'Lvl ${p.level}',
+                        style: RenanceText.labelMono.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: context.onPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Flexible(
+                    child: Text(
+                      p.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
+                        color: context.ink,
+                      ),
+                    ),
+                  ),
+                  if (p.premium) ...<Widget>[
+                    const SizedBox(width: 6),
+                    const BlueTickIcon(size: 17),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '@${p.username}',
+                style: TextStyle(
                   fontFamily: 'Nunito',
-                  fontSize: 21,
-                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: context.textSecondary,
                 ),
               ),
-            ),
-            if (p.premium) ...<Widget>[
-              const SizedBox(width: 6),
-              const BlueTickIcon(size: 17),
-            ],
-          ],
-        ),
-        const SizedBox(height: 2),
-        Text(
-          '@${p.username}',
-          style: RenanceText.caption.copyWith(color: context.textSecondary),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            LeagueBadge(league: p.league, size: 34),
-            const SizedBox(width: 8),
-            Text(
-              '${p.league} League',
-              style: const TextStyle(
-                fontFamily: 'Nunito',
-                fontSize: 14.5,
-                fontWeight: FontWeight.w800,
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  LeagueBadge(league: p.league, size: 34),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${p.league} League',
+                    style: TextStyle(
+                      fontFamily: 'Nunito',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: context.ink,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (!p.isSelf)
-          Center(
-            child: FollowChip(
-              following: p.isFollowing,
-              onTap: _toggleFollow,
-            ),
-          ),
-        const SizedBox(height: 8),
-        Center(
-          child: Text(
-            'On Renance since $joinedLabel ${joined.year}',
-            style: RenanceText.caption.copyWith(
-              fontSize: 12,
-              color: context.textSecondary,
-            ),
+              const SizedBox(height: 12),
+              // The web's key-btn follow key: rectangular, Following
+              // flips to the muted ink face, follow-back aware.
+              if (!p.isSelf)
+                TactileButton(
+                  onPressed: _toggleFollow,
+                  expand: false,
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  fontSize: 14,
+                  face: p.isFollowing ? context.textSecondary : context.primary,
+                  onFace: p.isFollowing ? Colors.white : context.onPrimary,
+                  edge: p.isFollowing
+                      ? mixTowardBlack(context.textSecondary, 0.62)
+                      : mixTowardBlack(context.primary, 0.68),
+                  child: Text(
+                    p.isFollowing
+                        ? 'Following \u2713'
+                        : (p.followsYou ? 'Follow back' : 'Follow'),
+                  ),
+                ),
+              const SizedBox(height: 10),
+              Text(
+                'On Renance since $joinedLabel ${joined.year}',
+                style: TextStyle(
+                  fontFamily: 'Nunito',
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: context.textSecondary,
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
-        // stat strip
+        // Stat strip card: four 11px-uppercase-label / 19px-black columns
+        // with hairline dividers, then the topics/perfect pill inside.
         Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: context.card,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: context.outlineVariant, width: 2),
-          ),
-          child: Row(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: tile(context),
+          child: Column(
             children: <Widget>[
-              Expanded(
-                child: _ProfileStat(
-                    label: 'Followers', value: '${p.followers}'),
+              Row(
+                children: <Widget>[
+                  _PublicStat(label: 'Followers', value: '${p.followers}'),
+                  _statDivider(context),
+                  _PublicStat(label: 'Following', value: '${p.following}'),
+                  _statDivider(context),
+                  _PublicStat(
+                    label: 'Streak',
+                    value: '${p.streak}',
+                    amber: true,
+                  ),
+                  _statDivider(context),
+                  _PublicStat(label: 'XP', value: '${p.xp}'),
+                ],
               ),
-              Expanded(
-                child: _ProfileStat(label: 'Following', value: '${p.following}'),
-              ),
-              Expanded(
-                child: _ProfileStat(
-                  label: 'Streak',
-                  value: '${p.streak}',
-                  flame: true,
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: context.surfaceContainer,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ),
-              Expanded(
-                child: _ProfileStat(label: 'XP', value: '${p.xp}'),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    Text('${p.topicsDone} topics done',
+                        style: TextStyle(
+                          fontFamily: 'Nunito',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: context.textSecondary,
+                        )),
+                    Text('${p.perfectCount} perfect runs',
+                        style: TextStyle(
+                          fontFamily: 'Nunito',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: context.textSecondary,
+                        )),
+                  ],
+                ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 8),
-        Center(
-          child: Text(
-            '${p.topicsDone} topics done · ${p.perfectCount} perfect runs',
-            style: RenanceText.caption.copyWith(
-              fontSize: 12,
-              color: context.textSecondary,
-            ),
-          ),
-        ),
-        const SizedBox(height: 18),
-        const Text(
-          'Taking',
-          style: TextStyle(
-            fontFamily: 'Nunito',
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 10),
-        if (p.courses.isEmpty)
-          Text(
-            'No courses on their desk yet.',
-            style: RenanceText.caption.copyWith(color: context.textSecondary),
-          )
-        else
-          for (final CoursePulse c in p.courses)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: context.card,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: context.outlineVariant, width: 2),
+        const SizedBox(height: 16),
+        // Taking - one card, the uppercase header inside.
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: tile(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'TAKING',
+                style: TextStyle(
+                  fontFamily: 'Nunito',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2.2,
+                  color: context.textSecondary,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
+              ),
+              const SizedBox(height: 12),
+              if (p.courses.isEmpty)
+                Text(
+                  'No courses on their desk yet.',
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: context.textSecondary,
+                  ),
+                )
+              else
+                for (final CoursePulse c in p.courses)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Expanded(
-                          child: Text(
-                            c.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: 'Nunito',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: <Widget>[
+                            Expanded(
+                              child: Text(
+                                c.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: 'Nunito',
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: context.ink,
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${c.body} \u00b7 ${c.done}/${c.topics}',
+                              style: RenanceText.labelMono.copyWith(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: context.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          '${c.body} · ${c.done}/${c.topics}',
-                          style: RenanceText.caption.copyWith(
-                            fontSize: 11.5,
-                            color: context.textSecondary,
-                          ),
+                        const SizedBox(height: 4),
+                        LearnProgressBar(
+                          value: c.percent / 100,
+                          height: 8,
+                          gold: c.percent >= 100,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    LearnProgressBar(
-                      value: c.percent / 100,
-                      height: 8,
-                      gold: c.percent >= 100,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        const SizedBox(height: 18),
-        const Text(
-          'Posts',
-          style: TextStyle(
-            fontFamily: 'Nunito',
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
+                  ),
+            ],
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 16),
+        // Their posts - uppercase section header, dashed empty card.
+        Text(
+          'POSTS',
+          style: TextStyle(
+            fontFamily: 'Nunito',
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2.2,
+            color: context.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 8),
         if (_posts.isEmpty)
-          Text(
-            'Nothing posted yet.',
-            style: RenanceText.caption.copyWith(color: context.textSecondary),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: context.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: context.outlineVariant,
+                width: 2,
+                style: BorderStyle.solid,
+              ),
+            ),
+            child: Text(
+              'Nothing posted yet.',
+              style: TextStyle(
+                fontFamily: 'Nunito',
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: context.textSecondary,
+              ),
+            ),
           )
         else
           for (final SocialPost post in _posts)
             Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(top: 12),
               child: Container(
-                padding: const EdgeInsets.all(12),
+                width: double.infinity,
                 decoration: BoxDecoration(
                   color: context.card,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: context.outlineVariant, width: 2),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: context.outlineVariant.withValues(alpha: 0.55),
+                      offset: const Offset(0, 4),
+                      blurRadius: 0,
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(
-                      post.body,
-                      style: RenanceText.bodyBase.copyWith(
-                        fontWeight: FontWeight.w700,
+                    Padding(
+                      padding:
+                          const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: Text(
+                        post.body,
+                        style: TextStyle(
+                          fontFamily: 'Nunito',
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
+                          height: 1.5,
+                          color: context.ink,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: <Widget>[
-                        MsIcon(
-                          post.likedByMe ? 'favorite' : 'favorite_border',
-                          size: 15,
-                          color: post.likedByMe
-                              ? RenanceColors.cardinal
-                              : context.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text('${post.likes}',
-                            style: RenanceText.caption.copyWith(fontSize: 12)),
-                        const SizedBox(width: 12),
-                        const MsIcon('chat_bubble', size: 15),
-                        const SizedBox(width: 4),
-                        Text('${post.comments}',
-                            style: RenanceText.caption.copyWith(fontSize: 12)),
-                        const Spacer(),
-                        Text(
-                          timeAgo(post.createdAtMs),
-                          style: RenanceText.caption.copyWith(
-                            fontSize: 11.5,
-                            color: context.textSecondary,
+                    const SizedBox(height: 10),
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(
+                            color: context.outlineVariant.withValues(alpha: 0.4),
+                            width: 2,
                           ),
                         ),
-                      ],
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Row(
+                        children: <Widget>[
+                          MsIcon(
+                            post.likedByMe ? 'favorite' : 'favorite_border',
+                            size: 16,
+                            color: post.likedByMe
+                                ? RenanceColors.cardinal
+                                : context.textSecondary,
+                            fill: post.likedByMe,
+                          ),
+                          const SizedBox(width: 4),
+                          Text('${post.likes}',
+                              style: TextStyle(
+                                fontFamily: 'Nunito',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: context.textSecondary,
+                              )),
+                          const SizedBox(width: 16),
+                          MsIcon('chat_bubble',
+                              size: 16, color: context.textSecondary),
+                          const SizedBox(width: 4),
+                          Text('${post.comments}',
+                              style: TextStyle(
+                                fontFamily: 'Nunito',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: context.textSecondary,
+                              )),
+                          const Spacer(),
+                          Text(
+                            timeAgo(post.createdAtMs),
+                            style: TextStyle(
+                              fontFamily: 'Nunito',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: context.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -506,83 +673,64 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
       ],
     );
   }
+
+  /// the stat strip's w-px bg-outline-variant/40 divider
+  Widget _statDivider(BuildContext context) => Container(
+        width: 1,
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        color: context.outlineVariant.withValues(alpha: 0.40),
+      );
 }
 
-class _ProfileStat extends StatelessWidget {
-  const _ProfileStat({
+/// One stat column of the public profile strip: the 11px bold uppercase
+/// label over the 19px black value (streak wears the amber flame).
+class _PublicStat extends StatelessWidget {
+  const _PublicStat({
     required this.label,
     required this.value,
-    this.flame = false,
+    this.amber = false,
   });
 
   final String label;
   final String value;
-  final bool flame;
+  final bool amber;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        Text(
-          value,
-          style: const TextStyle(
-            fontFamily: 'Nunito',
-            fontSize: 17,
-            fontWeight: FontWeight.w900,
+    return Expanded(
+      child: Column(
+        children: <Widget>[
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontFamily: 'Nunito',
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+              color: context.textSecondary,
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            if (flame)
-              const MsIcon('local_fire_department',
-                  size: 13, color: Color(0xFFF59E0B))
-            else ...<Widget>[
-              MsIcon(label == 'XP' ? 'bolt' : 'group',
-                  size: 13, color: context.textSecondary),
-            ],
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: RenanceText.caption.copyWith(
-                fontSize: 11,
-                color: context.textSecondary,
+          const SizedBox(height: 2),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              if (amber) ...<Widget>[
+                const MsIcon('local_fire_department',
+                    size: 15, color: Color(0xFFF59E0B), fill: true),
+                const SizedBox(width: 3),
+              ],
+              Text(
+                value,
+                style: TextStyle(
+                  fontFamily: 'Nunito',
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                  color: amber ? const Color(0xFFF59E0B) : context.ink,
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _BackKey extends StatelessWidget {
-  const _BackKey({this.onTap});
-
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap ?? () => Navigator.of(context).maybePop(),
-      child: Container(alignment: Alignment.center,
-        
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: context.card,
-          border: Border.all(color: context.outlineVariant),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: mixTowardBlack(context.outlineVariant, 0.62),
-              offset: const Offset(0, 3),
-              blurRadius: 0,
-            ),
-          ],
-        ),
-        child: MsIcon('arrow_back', size: 19, color: context.ink),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -657,25 +805,8 @@ class _SocialManagementScreenState extends State<SocialManagementScreen>
       backgroundColor: context.pageBg,
       body: Column(
         children: <Widget>[
-          SizedBox(height: MediaQuery.paddingOf(context).top),
-          SizedBox(
-            height: 56,
-            child: Row(
-              children: <Widget>[
-                const SizedBox(width: 8),
-                _BackKey(onTap: () => Navigator.of(context).maybePop()),
-                const SizedBox(width: 12),
-                const Text(
-                  'Your people',
-                  style: TextStyle(
-                    fontFamily: 'Nunito',
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // the web /profile/social PageBar: "Your people".
+          LearnPageBar(title: 'Your people'),
           TabBar(
             controller: _tabs,
             labelColor: context.ink,

@@ -585,16 +585,30 @@ class _StudyView extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
           child: Row(
             children: <Widget>[
-              TextButton(
-                onPressed: onBack,
-                child: const Text('Back'),
-              ),
-              const Spacer(),
+              // the web's study rail: Part label left, course right - no
+              // second Back link (the footer Back key is the one Back).
               Text(
                 'Part ${page + 1} of $pageCount',
-                style: RenanceText.labelMono.copyWith(
-                  fontSize: 11.5,
+                style: TextStyle(
+                  fontFamily: 'Nunito',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.4,
                   color: context.textSecondary,
+                ),
+              ),
+              const Spacer(),
+              Flexible(
+                child: Text(
+                  doc.course,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: context.outlineLight,
+                  ),
                 ),
               ),
             ],
@@ -621,148 +635,235 @@ class _StudyView extends StatelessWidget {
   }
 
   Widget _pageBody(BuildContext context, int page) {
-    // Page 0: the intro card.
+    // Page 0: the intro card - the web's rounded-2xl border-2
+    // bg-surface-container learn-tile header.
     if (page == 0) {
       final int notesLeft =
           doc.notes.length + (doc.drawings.isNotEmpty ? 1 : 0) + 1 - 1;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            doc.course.toUpperCase(),
-            style: RenanceText.overline.copyWith(color: context.textSecondary),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            doc.title,
-            style: const TextStyle(
-              fontFamily: 'Nunito',
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              height: 1.15,
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.outlineVariant, width: 2),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: context.outlineVariant.withValues(alpha: 0.55),
+              offset: const Offset(0, 4),
+              blurRadius: 0,
             ),
-          ),
-          const SizedBox(height: 10),
-          QuestionText(
-            doc.summary,
-            style: RenanceText.bodyBase.copyWith(height: 1.55),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            notesLeft > 0
-                ? '$notesLeft more section${notesLeft == 1 ? '' : 's'} to '
-                    'read, then ${doc.quiz.length} questions. Tap Next to keep '
-                    'going.'
-                : '${doc.quiz.length} questions are waiting. Tap Next to keep '
-                    'going.',
-            style: RenanceText.caption.copyWith(color: context.textSecondary),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              doc.course.toUpperCase(),
+              style: RenanceText.labelMono.copyWith(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.6,
+                color: context.primaryInk,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              doc.title,
+              style: const TextStyle(
+                fontFamily: 'Nunito',
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+                height: 1.25,
+              ),
+            ),
+            const SizedBox(height: 6),
+            QuestionText(
+              doc.summary,
+              style: RenanceText.bodyBase.copyWith(
+                height: 1.55,
+                fontSize: 13.5,
+                color: context.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: context.cardLow,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                notesLeft > 0
+                    ? '$notesLeft more section${notesLeft == 1 ? '' : 's'} to '
+                        'read, then ${doc.quiz.length} question${doc.quiz.length == 1 ? '' : 's'}. Tap Next to keep going.'
+                    : '${doc.quiz.length} questions are waiting. Tap Next to keep '
+                        'going.',
+                style: RenanceText.caption.copyWith(
+                  fontWeight: FontWeight.w700,
+                  height: 1.35,
+                  color: context.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
       );
     }
-    // Notes pages.
+    // Notes pages - the web's article card: rounded-2xl border-2
+    // bg-card p-4, heading, the note image, then the body.
     int cursor = 1;
     if (page < cursor + doc.notes.length) {
       final LessonNote note = doc.notes[page - cursor];
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            '${page - cursor + 1}. ${note.heading}',
-            style: const TextStyle(
-              fontFamily: 'Nunito',
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              height: 1.2,
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.outlineVariant, width: 2),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: context.outlineVariant.withValues(alpha: 0.55),
+              offset: const Offset(0, 4),
+              blurRadius: 0,
             ),
-          ),
-          const SizedBox(height: 10),
-          QuestionText(
-            note.body,
-            style: RenanceText.bodyBase.copyWith(height: 1.6, fontSize: 15),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              '${page - cursor + 1}. ${note.heading}',
+              style: const TextStyle(
+                fontFamily: 'Nunito',
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                height: 1.3,
+              ),
+            ),
+            if (note.image != null && note.image!.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 224),
+                  child: Image.network(
+                    resolveQImageUrl(note.image!),
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            QuestionText(
+              note.body,
+              style: RenanceText.bodyBase.copyWith(height: 1.6, fontSize: 14),
+            ),
+          ],
+        ),
       );
     }
     cursor += doc.notes.length;
-    // Drawings page.
+    // Drawings page - the web's card: heading inside, figures in
+    // bordered surface wells.
     if (doc.drawings.isNotEmpty && page == cursor) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Real drawings for this topic',
-            style: const TextStyle(
-              fontFamily: 'Nunito',
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.outlineVariant, width: 2),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: context.outlineVariant.withValues(alpha: 0.55),
+              offset: const Offset(0, 4),
+              blurRadius: 0,
             ),
-          ),
-          const SizedBox(height: 12),
-          for (final LearnDrawing d in doc.drawings)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: _DrawingFigure(drawing: d),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'Real drawings for this topic',
+              style: const TextStyle(
+                fontFamily: 'Nunito',
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-        ],
+            const SizedBox(height: 12),
+            for (final LearnDrawing d in doc.drawings)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _DrawingFigure(drawing: d),
+              ),
+          ],
+        ),
       );
     }
     cursor += doc.drawings.isNotEmpty ? 1 : 0;
-    // Key points page (last).
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          'Key points',
-          style: const TextStyle(
-            fontFamily: 'Nunito',
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-          ),
+    // Key points page (last) - the web's primary-wash card with the
+    // heading inside.
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.primary.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: context.primary.withValues(alpha: 0.40),
+          width: 2,
         ),
-        const SizedBox(height: 12),
-        Container(alignment: Alignment.center,
-          
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: context.primary.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: context.primary.withValues(alpha: 0.35),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Key points',
+            style: TextStyle(
+              fontFamily: 'Nunito',
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: context.primaryInk,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              for (final String k in doc.keyPoints)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: MsIcon(
-                          'check_circle',
-                          size: 17,
-                          color: context.primary,
-                          fill: true,
-                        ),
-                      ),
-                      const SizedBox(width: 9),
-                      Expanded(
-                        child: QuestionText(
-                          k,
-                          style: RenanceText.bodyBase.copyWith(height: 1.5),
-                        ),
-                      ),
-                    ],
+          const SizedBox(height: 8),
+          for (final String k in doc.keyPoints)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: MsIcon(
+                      'check_circle',
+                      size: 17,
+                      color: context.primary,
+                      fill: true,
+                    ),
                   ),
-                ),
-            ],
-          ),
-        ),
-      ],
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: QuestionText(
+                      k,
+                      style: RenanceText.bodyBase.copyWith(
+                        height: 1.5,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 

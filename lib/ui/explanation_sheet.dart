@@ -136,7 +136,7 @@ class _ExplanationSheetState extends State<ExplanationSheet> {
                 ),
                 child: Row(
                   children: <Widget>[
-                    TactileBackKey(
+                    SheetBackKey(
                       onTap: () => Navigator.of(context).pop(),
                       icon: 'close',
                       size: 40,
@@ -709,7 +709,7 @@ class _AiExplanationSheetState extends State<AiExplanationSheet> {
                 ),
                 child: Row(
                   children: <Widget>[
-                    TactileBackKey(
+                    SheetBackKey(
                       onTap: () => Navigator.of(context).pop(),
                       icon: 'close',
                       size: 40,

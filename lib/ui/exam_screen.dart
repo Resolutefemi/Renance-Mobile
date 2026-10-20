@@ -118,7 +118,7 @@ class _ExamScreenState extends State<ExamScreen> {
           ? null
           : AppBar(
               backgroundColor: context.cardLowest,
-              leading: TactileBackKey(icon: 'arrow_back', onTap: () => Navigator.of(context).maybePop()),
+              leading: SheetBackKey(icon: 'arrow_back', onTap: () => Navigator.of(context).maybePop()),
               title: Text(
                   widget.studyMode ? 'Study Past Questions' : 'Active Quiz',
                   style: RenanceText.sectionTitle),

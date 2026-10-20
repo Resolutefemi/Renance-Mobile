@@ -37,7 +37,7 @@ import 'package:renance/ui/gamification_hub_screen.dart';
 import 'package:renance/ui/home_screen.dart';
 import 'package:renance/ui/jamb_subject_selection_screen.dart';
 import 'package:renance/ui/lessons_screen.dart';
-import 'package:renance/ui/library_screen.dart';
+import 'package:renance/ui/packs_screen.dart';
 import 'package:renance/ui/notifications_screen.dart';
 import 'package:renance/ui/offline_share_screen.dart';
 import 'package:renance/ui/onboarding_sheet.dart';
@@ -333,7 +333,8 @@ WidgetBuilder screenFor(String name) {
             onGoTab: (_) {},
           );
     case 'library':
-      return (_) => LibraryScreen(
+      // the retired black library screen is now the web /packs twin.
+      return (_) => PacksScreen(
             onOpenExam: (BuildContext c, ExamMeta e,
                 {int? durationOverrideMinutes,
                 bool untimed = false,

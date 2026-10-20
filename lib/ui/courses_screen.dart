@@ -367,27 +367,10 @@ class _RoundBack extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap ?? () => Navigator.of(context).maybePop(),
-      child: Container(alignment: Alignment.center,
-        
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: context.card,
-          border: Border.all(color: context.outlineVariant),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: mixTowardBlack(context.outlineVariant, 0.62),
-              offset: const Offset(0, 3),
-              blurRadius: 0,
-            ),
-          ],
-        ),
-        child: MsIcon('arrow_back', size: 19, color: context.ink),
-      ),
-    );
+    // The web PageBar key: the FLAT 36px rounded-xl arrow - no circle,
+    // no border, no ledge (founder directive 2026-10-20, the back-key
+    // parity sweep). TactileBackKey now IS that key.
+    return TactileBackKey(onTap: onTap ?? () => Navigator.of(context).maybePop());
   }
 }
 

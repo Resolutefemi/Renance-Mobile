@@ -906,21 +906,23 @@ class HomeNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Founder report 2026-10-21 ("the gesture button is overlapping the
-    // base navbar"): on phones whose system bar overlays the app
-    // (edge-to-edge / OEM fullscreen modes that report a 0px bottom
-    // inset) the Android gesture/3-button strip drew straight over the
-    // tab labels. The web recipe max(6, safe-area-inset-bottom) trusts
-    // the reported inset alone - not enough when the OS lies. The nav
-    // now reserves the FULL standard Android bar height (48dp) as the
-    // floor: max(48, reported inset). The extra reserve is white-on-
-    // white under a white navbar - invisible on every device - while
-    // the labels always clear the system strip.
+    // Founder report 2026-10-21: on edge-to-edge phones the Android
+    // gesture/3-button strip drew straight over the tab labels, so pass
+    // IV reserved a hard 48dp floor (max(48, reported inset)). But on
+    // phones whose window does NOT extend behind the system bar the OS
+    // ends the app window ABOVE the strip and reports a 0px bottom
+    // inset - the floor then paints a dead ~48dp white band under the
+    // navbar (founder round-4 screenshot: white gap between the tabs
+    // and the system buttons). The OS is trusted exactly now: reserve
+    // what the window actually reports (the larger of padding and
+    // viewPadding bottoms) and nothing more. Edge-to-edge devices
+    // still clear the strip; windowed devices sit flush - no band on
+    // any device.
     final double reported = MediaQuery.paddingOf(context).bottom >
             MediaQuery.viewPaddingOf(context).bottom
         ? MediaQuery.paddingOf(context).bottom
         : MediaQuery.viewPaddingOf(context).bottom;
-    final double safePad = reported < 48 ? 48 : reported;
+    final double safePad = reported;
     final bool dark = context.darkChrome;
     // The dark tier's nav-pill (globals.css): a 9% macaw wash with the
     // 1.5px inset macaw ring instead of the light macaw-light face.

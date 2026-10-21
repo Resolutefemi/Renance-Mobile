@@ -1705,20 +1705,28 @@ class LauncherTile extends StatelessWidget {
             ],
           ),
           SizedBox(height: 8),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            // The web's tile label: text-[10.5px] font-bold,
-            // text-on-surface-variant / text-primary-ink on the AI tile.
-            style: TextStyle(
-              fontFamily: 'Nunito',
-              fontSize: 10.5,
-              height: 1.2,
-              color: highlight
-                  ? Color.lerp(context.primary, Colors.black, 0.28)
-                  : context.textSecondary,
-              fontWeight: FontWeight.w700,
+          // Founder 2026-10-21 ("make the app adapt to devices and be
+          // responsive on all devices"): the label SCALES DOWN to fit
+          // its tile instead of ellipsizing - "Question Pack" and
+          // "Review Due" stay whole on narrow phones and at the big
+          // system font scales, exactly like the web desk.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              // The web's tile label: text-[10.5px] font-bold,
+              // text-on-surface-variant / text-primary-ink on the AI tile.
+              style: TextStyle(
+                fontFamily: 'Nunito',
+                fontSize: 10.5,
+                height: 1.2,
+                color: highlight
+                    ? Color.lerp(context.primary, Colors.black, 0.28)
+                    : context.textSecondary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

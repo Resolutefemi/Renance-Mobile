@@ -335,7 +335,13 @@ class _PasswordFieldState extends State<_PasswordField> {
           ? null
           : (_) => widget.onSubmitted!(),
       decoration: InputDecoration(
-        prefixIcon: const MsIcon('lock', size: 20),
+        // Founder 2026-10-21: the lock rode the well's top-left corner
+        // at large font scales - the glyph now centres in a fixed 44px
+        // hit area (MsFieldIcon), matching the web's muted field icons.
+        prefixIcon: MsFieldIcon('lock',
+            size: 20, color: context.textSecondary),
+        prefixIconConstraints:
+            const BoxConstraints(minWidth: 44, minHeight: 44),
         suffixIcon: IconButton(
           icon: MsIcon(
             _visible ? 'visibility' : 'visibility_off',
@@ -766,8 +772,11 @@ class _LoginScreenState extends State<LoginScreen> {
             autocorrect: false,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              prefixIcon: MsIcon('mail', size: 20),
+            decoration: InputDecoration(
+              prefixIcon: MsFieldIcon('mail',
+                  size: 20, color: context.textSecondary),
+              prefixIconConstraints:
+                  const BoxConstraints(minWidth: 44, minHeight: 44),
               hintText: 'you@example.com',
             ),
           ),
@@ -1143,8 +1152,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               keyboardType: TextInputType.emailAddress,
               autocorrect: false,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                prefixIcon: MsIcon('mail', size: 20),
+              decoration: InputDecoration(
+                prefixIcon: MsFieldIcon('mail',
+                    size: 20, color: context.textSecondary),
+                prefixIconConstraints:
+                    const BoxConstraints(minWidth: 44, minHeight: 44),
                 hintText: 'you@example.com',
               ),
             ),
@@ -1157,8 +1169,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               autocorrect: false,
               autofillHints: const <String>[AutofillHints.email],
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                prefixIcon: MsIcon('mail', size: 20),
+              decoration: InputDecoration(
+                prefixIcon: MsFieldIcon('mail',
+                    size: 20, color: context.textSecondary),
+                prefixIconConstraints:
+                    const BoxConstraints(minWidth: 44, minHeight: 44),
                 hintText: 'you@example.com',
               ),
             ),
@@ -1504,8 +1519,11 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _submit(),
-                    decoration: const InputDecoration(
-                      prefixIcon: MsIcon('alternate_email', size: 20),
+                    decoration: InputDecoration(
+                      prefixIcon: MsFieldIcon('alternate_email',
+                          size: 20, color: context.textSecondary),
+                      prefixIconConstraints: const BoxConstraints(
+                          minWidth: 44, minHeight: 44),
                       hintText: 'you@example.com',
                     ),
                   ),

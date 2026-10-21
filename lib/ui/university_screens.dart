@@ -451,11 +451,9 @@ class _UniversityDeskScreenState extends State<UniversityDeskScreen> {
                           // glyph ON the field's left border. The web
                           // field insets the icon 10px inside a 36px
                           // hit area - reproduce exactly that.
-                          prefixIcon: Padding(
-                            padding: const EdgeInsets.only(left: 10),
-                            child: MsIcon('search',
-                                size: 18, color: context.textSecondary),
-                          ),
+                          prefixIcon: MsFieldIcon('search',
+                              size: 18, color: context.textSecondary,
+                              box: 36, leftInset: 10),
                           prefixIconConstraints: const BoxConstraints(
                               minWidth: 36, minHeight: 36),
                           suffixIcon: _query.isEmpty

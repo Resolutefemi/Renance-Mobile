@@ -491,17 +491,23 @@ Future<void> _openIdentityEditor(BuildContext context) async {
                 TextField(
                   controller: nameCtrl,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Display name',
-                    prefixIcon: MsIcon('person', size: 20),
+                    prefixIcon: MsFieldIcon('person',
+                        size: 20, color: context.textSecondary),
+                    prefixIconConstraints:
+                        const BoxConstraints(minWidth: 44, minHeight: 44),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: userCtrl,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Username',
-                    prefixIcon: MsIcon('alternate_email', size: 20),
+                    prefixIcon: MsFieldIcon('alternate_email',
+                        size: 20, color: context.textSecondary),
+                    prefixIconConstraints:
+                        const BoxConstraints(minWidth: 44, minHeight: 44),
                   ),
                 ),
                 const SizedBox(height: 16),

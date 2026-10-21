@@ -883,11 +883,9 @@ class _SelectFaceState extends State<_SelectFace> {
                     // Founder 2026-10-21: the search glyph rides 10px
                     // inside a 36px hit area, centred on the text line
                     // (the app's established bar, university_screens).
-                    prefixIcon: Padding(
-                      padding: const EdgeInsets.only(left: 10),
-                      child: MsIcon('search',
-                          size: 18, color: context.textSecondary),
-                    ),
+                    prefixIcon: MsFieldIcon('search',
+                        size: 18, color: context.textSecondary,
+                        box: 36, leftInset: 10),
                     prefixIconConstraints:
                         const BoxConstraints(minWidth: 36, minHeight: 36),
                   ),
@@ -929,13 +927,19 @@ class _SelectFaceState extends State<_SelectFace> {
                         final int index =
                             i - (widget.courses.isEmpty ? 0 : 1);
                         final CatalogItem item = shown[index];
+                        final bool inList = _enrolledIds.contains(item.id);
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: _CatalogRow(
                             title: item.title,
-                            sub: '${item.topicCount} topics · in your list',
-                            subBold: _enrolledIds.contains(item.id),
-                            checked: _enrolledIds.contains(item.id),
+                            // Founder 2026-10-21: JAMB subjects read 300
+                            // topics (the shelf data), and "in your list"
+                            // only rides the rows actually enrolled -
+                            // unchecked subjects showed it unconditionally.
+                            sub: '${item.topicCount} topics'
+                                '${inList ? ' · in your list' : ''}',
+                            subBold: inList,
+                            checked: inList,
                             onTap: () => _toggleId(item.id),
                           ),
                         );
@@ -1270,11 +1274,9 @@ class _DeptGateState extends State<_DeptGate> {
                   hintText: 'Search departments…',
                   // Founder 2026-10-21: glyph centred on the text line,
                   // 10px inside a 36px hit area (the app's bar).
-                  prefixIcon: Padding(
-                    padding: const EdgeInsets.only(left: 10),
-                    child:
-                        MsIcon('search', size: 18, color: context.textSecondary),
-                  ),
+                  prefixIcon: MsFieldIcon('search',
+                      size: 18, color: context.textSecondary,
+                      box: 36, leftInset: 10),
                   prefixIconConstraints:
                       const BoxConstraints(minWidth: 36, minHeight: 36),
                 ),
@@ -1847,11 +1849,9 @@ class _ManageFaceState extends State<_ManageFace> {
                   hintText: 'Search by code (CSC, MTH…), title or topic',
                   // Founder 2026-10-21: glyph centred on the text line,
                   // 10px inside a 36px hit area (the app's bar).
-                  prefixIcon: Padding(
-                    padding: const EdgeInsets.only(left: 10),
-                    child:
-                        MsIcon('search', size: 18, color: context.textSecondary),
-                  ),
+                  prefixIcon: MsFieldIcon('search',
+                      size: 18, color: context.textSecondary,
+                      box: 36, leftInset: 10),
                   prefixIconConstraints:
                       const BoxConstraints(minWidth: 36, minHeight: 36),
                 ),

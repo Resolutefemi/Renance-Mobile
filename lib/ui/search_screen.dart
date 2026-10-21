@@ -335,11 +335,9 @@ class _SearchBar extends StatelessWidget {
                 hintStyle: RenanceText.bodySecondary.copyWith(color: context.textSecondary),
                 // Founder 2026-10-21: glyph centred on the text line,
                 // 10px inside a 36px hit area (the app's bar).
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.only(left: 10),
-                  child: MsIcon('search',
-                      size: 18, color: context.textSecondary),
-                ),
+                prefixIcon: MsFieldIcon('search',
+                    size: 18, color: context.textSecondary,
+                    box: 36, leftInset: 10),
                 prefixIconConstraints:
                     const BoxConstraints(minWidth: 36, minHeight: 36),
                 filled: true,

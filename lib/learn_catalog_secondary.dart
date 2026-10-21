@@ -23,23 +23,28 @@ class HardCatalogItem {
   final int n;
 }
 
+/// Founder directive 2026-10-21 ("the topics under the jamb courses is
+/// 300 - change the number on the selection list to 300 Topics"): every
+/// JAMB subject carries 300 topics / 15 units in the product, so the
+/// picker rows read 300 for all 16 subjects (the count is display
+/// copy - the roadmap ids still open the real server paths).
 const List<HardCatalogItem> kJambCatalog = <HardCatalogItem>[
-  HardCatalogItem('SEC-JAMB-AGRICULTURAL-SCIENCE', 'Agricultural Science', 55),
-  HardCatalogItem('SEC-JAMB-BIOLOGY', 'Biology', 59),
-  HardCatalogItem('SEC-JAMB-CHEMISTRY', 'Chemistry', 67),
-  HardCatalogItem('SEC-JAMB-CRS', 'Christian Religious Studies', 53),
-  HardCatalogItem('SEC-JAMB-CIVIC-EDUCATION', 'Civic Education', 51),
-  HardCatalogItem('SEC-JAMB-COMMERCE', 'Commerce', 52),
-  HardCatalogItem('SEC-JAMB-COMPUTER-STUDIES', 'Computer Studies', 51),
-  HardCatalogItem('SEC-JAMB-ECONOMICS', 'Economics', 54),
-  HardCatalogItem('SEC-JAMB-ENGLISH', 'English Language', 50),
-  HardCatalogItem('SEC-JAMB-GEOGRAPHY', 'Geography', 54),
-  HardCatalogItem('SEC-JAMB-GOVERNMENT', 'Government', 55),
-  HardCatalogItem('SEC-JAMB-HISTORY', 'History', 52),
-  HardCatalogItem('SEC-JAMB-LITERATURE', 'Literature in English', 50),
-  HardCatalogItem('SEC-JAMB-MATHEMATICS', 'Mathematics', 58),
-  HardCatalogItem('SEC-JAMB-PHYSICS', 'Physics', 63),
-  HardCatalogItem('SEC-JAMB-ACCOUNTING', 'Principles of Accounts', 50),
+  HardCatalogItem('SEC-JAMB-AGRICULTURAL-SCIENCE', 'Agricultural Science', 300),
+  HardCatalogItem('SEC-JAMB-BIOLOGY', 'Biology', 300),
+  HardCatalogItem('SEC-JAMB-CHEMISTRY', 'Chemistry', 300),
+  HardCatalogItem('SEC-JAMB-CRS', 'Christian Religious Studies', 300),
+  HardCatalogItem('SEC-JAMB-CIVIC-EDUCATION', 'Civic Education', 300),
+  HardCatalogItem('SEC-JAMB-COMMERCE', 'Commerce', 300),
+  HardCatalogItem('SEC-JAMB-COMPUTER-STUDIES', 'Computer Studies', 300),
+  HardCatalogItem('SEC-JAMB-ECONOMICS', 'Economics', 300),
+  HardCatalogItem('SEC-JAMB-ENGLISH', 'English Language', 300),
+  HardCatalogItem('SEC-JAMB-GEOGRAPHY', 'Geography', 300),
+  HardCatalogItem('SEC-JAMB-GOVERNMENT', 'Government', 300),
+  HardCatalogItem('SEC-JAMB-HISTORY', 'History', 300),
+  HardCatalogItem('SEC-JAMB-LITERATURE', 'Literature in English', 300),
+  HardCatalogItem('SEC-JAMB-MATHEMATICS', 'Mathematics', 300),
+  HardCatalogItem('SEC-JAMB-PHYSICS', 'Physics', 300),
+  HardCatalogItem('SEC-JAMB-ACCOUNTING', 'Principles of Accounts', 300),
 ];
 
 const List<HardCatalogItem> kWaecCatalog = <HardCatalogItem>[

@@ -20,6 +20,7 @@ import 'ui/school_home_v2.dart'
         SchoolTeachersScreen, SchoolIdCardsScreen, SchoolRouteArgs;
 import 'ui/splash_screen.dart' show SplashScreen;
 import 'ui/theme.dart';
+import 'ui/welcome_screen.dart' show WelcomeScreen;
 import 'update_gate.dart';
 
 Future<void> main() async {
@@ -166,6 +167,13 @@ class RenanceApp extends StatelessWidget {
                         : AuthAudience.students;
                 return MaterialPageRoute<void>(
                   builder: (_) => RegisterScreen(initialAudience: audience),
+                );
+              }
+              if (settings.name == '/welcome') {
+                // Founder pass VIII: the Duolingo-style welcome for
+                // logged-out first runs (no route arguments needed).
+                return MaterialPageRoute<void>(
+                  builder: (_) => const WelcomeScreen(),
                 );
               }
               if (settings.name == '/exam') {

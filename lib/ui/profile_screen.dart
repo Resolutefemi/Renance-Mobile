@@ -16,6 +16,7 @@ import '../learn_models.dart' show SocialConnections;
 import '../models.dart';
 import '../storage.dart';
 import 'exam_history_screen.dart';
+import 'faq_screen.dart';
 import 'focus_sheet.dart';
 import 'gpa_screen.dart';
 import 'home_screen.dart' show AvatarCircle;
@@ -324,11 +325,11 @@ class ProfileScreen extends StatelessWidget {
             tint: context.textSecondary,
             label: 'Help & Support',
             onTap: () {
-              showLicensePage(
-                context: context,
-                applicationName: 'Renance',
-                applicationLegalese: 'Learn. Practice. Rise.',
-              );
+              // Founder pass VIII: the real FAQ screen now answers this
+              // row; the licenses page it used to open moved to the
+              // FAQ's footer ('Open-source licenses').
+              Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => const FaqScreen()));
             },
           ),
         ]),

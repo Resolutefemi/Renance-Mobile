@@ -524,10 +524,14 @@ class _RewardChipState extends State<_RewardChip>
 
 // ---------------------------------------------------- streak celebration
 
-/// Full-screen streak celebration: the 112px flame disc beating at
-/// 0.9s, the count-up (+1 per 90ms), the eyebrow
-/// (STARTED/EXTENDED/RESTORED), the body copy and the Keep going key.
-/// Auto-dismisses after 5.2s.
+/// The Duolingo-style streak popup (founder pass VIII screenshots): a
+/// full-screen dim with a centred card - the beating amber flame disc,
+/// the huge count-up streak number with the 'day streak' label, the
+/// 7-day week row (orange checks inside the current streak window, a
+/// blue snowflake on the day a Streak Freeze saved, hollow gray dots
+/// for the misses), the Perfect Streak / freeze message, and the
+/// full-width blue CONTINUE key that pops the route. Confetti still
+/// bursts on open (the lesson fires one too - it keeps).
 class StreakCelebration extends StatefulWidget {
   const StreakCelebration({
     super.key,
@@ -539,6 +543,9 @@ class StreakCelebration extends StatefulWidget {
 
   final int streak;
   final bool forgiven;
+
+  /// Kept for the existing call signature (lesson_overlay passes it);
+  /// the new visual speaks in freezes, not restore counts.
   final int forgivesLeft;
   final VoidCallback? onDone;
 
@@ -562,9 +569,7 @@ class _StreakCelebrationState extends State<StreakCelebration>
   void initState() {
     super.initState();
     _count.forward();
-    Future<void>.delayed(const Duration(milliseconds: 5200), () {
-      if (mounted) widget.onDone?.call();
-    });
+    showConfetti(context);
   }
 
   @override
@@ -574,36 +579,59 @@ class _StreakCelebrationState extends State<StreakCelebration>
     super.dispose();
   }
 
+  /// Mo..Su initials; the row shows the LAST 7 days, oldest -> today.
+  static const List<String> _weekdayLabels = <String>[
+    'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su',
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final String eyebrow = widget.forgiven
-        ? 'STREAK RESTORED'
-        : widget.streak >= 2
-            ? 'STREAK EXTENDED'
-            : 'STREAK STARTED';
-    final String body = widget.forgiven
-        ? 'Welcome back - we forgave your streak! No freeze spent. '
-              '${widget.forgivesLeft} free restore(s) left.'
-        : 'You studied today - that is how streaks survive. Miss a day and a '
-              'Streak Freeze saves it for you.';
-    final int from = math.max(0, widget.streak - 5);
+    // The current streak window: today counts as done (the popup fires
+    // right after activity), and day offset o sits inside the window
+    // when o < streak. A forgiven streak paints YESTERDAY blue - the
+    // day the freeze saved - instead of a check.
+    final DateTime today = DateUtils.dateOnly(DateTime.now());
+    final String message = widget.forgiven
+        ? 'Streak Freeze saves it for you.'
+        : widget.streak >= 7
+            ? 'Way to earn your Perfect Streak! Can you keep it next week?'
+            : 'You can get a perfect week next time by not using any Streak '
+                'Freezes!';
 
     return Container(
       color: Colors.black.withValues(alpha: 0.7),
       child: Center(
-          child: Padding(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 360),
             padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: context.card,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: const Color(0xFFFF9600).withValues(alpha: 0.4),
+                width: 2,
+              ),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(
+                  color: Color(0x33111C2D),
+                  blurRadius: 28,
+                  offset: Offset(0, 14),
+                ),
+              ],
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                // the flame disc
+                // the flame disc, beating exactly like the old cut
                 ScaleTransition(
                   scale: Tween<double>(begin: 1.0, end: 1.08).animate(
                     CurvedAnimation(parent: _beat, curve: Curves.easeInOut),
                   ),
                   child: Container(
-                    width: 112,
-                    height: 112,
+                    width: 96,
+                    height: 96,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const LinearGradient(
@@ -613,8 +641,9 @@ class _StreakCelebrationState extends State<StreakCelebration>
                       ),
                       boxShadow: <BoxShadow>[
                         BoxShadow(
-                          color: const Color(0xFFFF9600).withValues(alpha: 0.55),
-                          blurRadius: 60,
+                          color: const Color(0xFFFF9600)
+                              .withValues(alpha: 0.45),
+                          blurRadius: 44,
                           spreadRadius: 0,
                         ),
                       ],
@@ -622,28 +651,19 @@ class _StreakCelebrationState extends State<StreakCelebration>
                     child: const Center(
                       child: MsIcon(
                         'local_fire_department',
-                        size: 64,
+                        size: 54,
                         color: Colors.white,
                         fill: true,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 26),
-                Text(
-                  eyebrow,
-                  style: RenanceText.overline.copyWith(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    letterSpacing: 2,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
+                // the count-up number + 'day streak' label
                 AnimatedBuilder(
                   animation: _count,
                   builder: (BuildContext context, Widget? _) {
-                    final int n = from +
-                        ((_count.value * (widget.streak - from)).round());
+                    final int n = (_count.value * widget.streak).round();
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -651,54 +671,130 @@ class _StreakCelebrationState extends State<StreakCelebration>
                       children: <Widget>[
                         Text(
                           '$n',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Nunito',
-                            fontSize: 56,
+                            fontSize: 64,
                             fontWeight: FontWeight.w900,
                             height: 1.0,
-                            color: Colors.white,
+                            color: context.ink,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          widget.streak == 1 ? 'day' : 'days',
-                          style: const TextStyle(
+                        const SizedBox(width: 10),
+                        const Text(
+                          'day streak',
+                          style: TextStyle(
                             fontFamily: 'Nunito',
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFFF9600),
                           ),
                         ),
                       ],
                     );
                   },
                 ),
-                const SizedBox(height: 14),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 300),
-                  child: Text(
-                    body,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      height: 1.5,
-                      color: Colors.white.withValues(alpha: 0.85),
-                    ),
+                const SizedBox(height: 18),
+                // the 7-day week row, oldest -> today
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: <Widget>[
+                    for (int offset = 6; offset >= 0; offset--)
+                      _WeekDay(
+                        label: _weekdayLabels[
+                            today.subtract(Duration(days: offset)).weekday - 1],
+                        state: widget.forgiven && offset == 1
+                            ? _WeekDayState.frozen
+                            : offset < widget.streak
+                                ? _WeekDayState.done
+                                : _WeekDayState.empty,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1.5,
+                    color: context.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 26),
+                const SizedBox(height: 20),
                 TactileButton(
                   onPressed: widget.onDone,
                   height: 48,
-                  radius: BorderRadius.circular(999),
-                  child: const Text('Keep going'),
+                  // the full-width blue CONTINUE key (Duolingo #1899d6)
+                  face: const Color(0xFF1899D6),
+                  onFace: Colors.white,
+                  child: const Text('CONTINUE'),
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// One day dot of the week row: the label over a 34px circle that is
+/// either an orange check (inside the streak window), the blue
+/// snowflake (saved by a Streak Freeze) or a hollow gray dot.
+enum _WeekDayState { done, frozen, empty }
+
+class _WeekDay extends StatelessWidget {
+  const _WeekDay({required this.label, required this.state});
+
+  final String label;
+  final _WeekDayState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color hollow = context.outlineVariant;
+    return Column(
+      children: <Widget>[
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Nunito',
+            fontSize: 10.5,
+            fontWeight: FontWeight.w800,
+            color: state == _WeekDayState.empty
+                ? context.textSecondary
+                : state == _WeekDayState.frozen
+                    ? const Color(0xFF1899D6)
+                    : const Color(0xFFFF9600),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: state == _WeekDayState.empty
+                ? Colors.transparent
+                : state == _WeekDayState.frozen
+                    ? const Color(0xFF1899D6)
+                    : const Color(0xFFFF9600),
+            border: state == _WeekDayState.empty
+                ? Border.all(color: hollow, width: 2)
+                : null,
+          ),
+          child: state == _WeekDayState.empty
+              ? null
+              : MsIcon(
+                  state == _WeekDayState.frozen ? 'ac_unit' : 'check',
+                  size: 18,
+                  color: Colors.white,
+                  fill: true,
+                ),
+        ),
+      ],
     );
   }
 }
@@ -877,7 +973,8 @@ Future<void> showChestCelebration(
   );
 }
 
-/// Plays the streak celebration (auto-closes at 5.2s like the web).
+/// Plays the Duolingo-style streak popup; the student taps the blue
+/// CONTINUE key to dismiss it.
 Future<void> showStreakCelebration(
   BuildContext context, {
   required int streak,

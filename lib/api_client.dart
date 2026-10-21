@@ -1877,6 +1877,20 @@ class ApiClient {
         .toList();
   }
 
+  /// POST /social/feed - a freeform post (the Go handler decodes the
+  /// single `body` string field and caps it at 500 chars; the client
+  /// truncates first so a long achievement line can never 400).
+  /// Never auto-retries like every other POST.
+  Future<void> socialCreatePost(String body) async {
+    final String text = body.length > 500 ? body.substring(0, 500) : body;
+    await _send(
+      'POST',
+      '/social/feed',
+      body: <String, dynamic>{'body': text},
+      retryOnTimeout: false,
+    );
+  }
+
   /// POST /social/posts/{id}/like - toggle the heart.
   Future<(int, bool)> socialLike(int postId) async {
     final dynamic data = await _send('POST', '/social/posts/$postId/like');

@@ -608,12 +608,17 @@ class AttemptView {
     required this.code,
     required this.status,
     this.result,
+    this.startedAt,
   });
 
   final String attemptId;
   final String code;
   final String status; // in_progress | grading | graded | error
   final ExamResult? result;
+
+  /// When the sitting began (null when the row omits it): the
+  /// paused-paper resume flow derives the remaining clock from it.
+  final DateTime? startedAt;
 
   factory AttemptView.fromJson(Map<String, dynamic> j) => AttemptView(
     attemptId: (j['attemptId'] ?? '') as String,
@@ -622,6 +627,9 @@ class AttemptView {
     result: j['result'] == null
         ? null
         : ExamResult.fromJson((j['result'] as Map).cast<String, dynamic>()),
+    startedAt: j['startedAt'] is String
+        ? DateTime.tryParse(j['startedAt'] as String)
+        : null,
   );
 }
 

@@ -257,10 +257,22 @@ class _LessonOverlayScreenState extends State<_LessonOverlayScreen> {
   void _check() {
     if (_revealed) return;
     final LessonQuizQ q = _questions[_qIndex];
-    final String answer = _typed?.trim() ?? _picked ?? '';
-    if (answer.isEmpty) return;
-    final bool ok = answer.toLowerCase() == q.answer.toLowerCase().trim() ||
-        (q.options[answer]?.toLowerCase() == q.answer.toLowerCase());
+    final String typed = _typed?.trim() ?? '';
+    final String? pick = _picked;
+    if (typed.isEmpty && (pick == null || pick.isEmpty)) return;
+    // Type-in grades against the raw answer AND the option text behind
+    // a letter-shaped answer (the web's "typed Anion, marked wrong
+    // against Answer: D" fix). Choices grade through the one shared
+    // comparator so the paint and the banner can never disagree.
+    final bool ok;
+    if (typed.isNotEmpty) {
+      final String t = typed.toLowerCase();
+      final String raw = q.answer.trim().toLowerCase();
+      final String ansText = quizAnswerTextOf(q).trim().toLowerCase();
+      ok = t == raw || (ansText.isNotEmpty && t == ansText);
+    } else {
+      ok = quizOptionIsAnswer(q, pick!);
+    }
     setState(() {
       _revealed = true;
       _checked = ok;
@@ -941,6 +953,34 @@ class _DrawingFigure extends StatelessWidget {
 
 // --------------------------------------------------------------- quiz
 
+/// The stored answer rides in TWO shapes across the banks: the option
+/// LETTER ("B") or the option TEXT ("execution") - and cached papers
+/// mix both, sometimes with stray whitespace. One comparator shared by
+/// grading and painting keeps them in perfect agreement (founder
+/// screenshots 2026-10-20: the "Correct!" banner over a red option and
+/// the right tile never going green - the old text-only compare never
+/// matched a letter-shaped answer).
+bool quizOptionIsAnswer(LessonQuizQ q, String letter) {
+  final String ans = q.answer.trim().toLowerCase();
+  if (ans.isEmpty) return false;
+  if (letter.trim().toLowerCase() == ans) return true;
+  final String text =
+      (q.options[letter] ?? q.options[letter.toUpperCase()] ?? '')
+          .trim()
+          .toLowerCase();
+  return text.isNotEmpty && text == ans;
+}
+
+/// The human answer to print on the reveal line: the option TEXT behind
+/// a letter-shaped stored answer, else the stored answer itself (web
+/// answerTextOf parity).
+String quizAnswerTextOf(LessonQuizQ q) {
+  final String ans = q.answer.trim();
+  final String viaLetter =
+      q.options[ans] ?? q.options[ans.toUpperCase()] ?? '';
+  return viaLetter.isNotEmpty ? viaLetter : ans;
+}
+
 class _QuizView extends StatelessWidget {
   const _QuizView({
     required this.questions,
@@ -1074,8 +1114,10 @@ class _QuizView extends StatelessWidget {
     if (!revealed) {
       return picked == letter ? KeyCardState.selected : KeyCardState.rest;
     }
-    final String answerText = q.options[letter] ?? letter;
-    if (answerText.toLowerCase() == q.answer.toLowerCase()) {
+    // Reveal paint (founder 2026-10-21): the CORRECT answer tile goes
+    // green no matter which shape the stored answer rides in, and the
+    // wrong pick goes red - both through the shared comparator.
+    if (quizOptionIsAnswer(q, letter)) {
       return KeyCardState.correct;
     }
     if (picked == letter) {
@@ -1217,6 +1259,12 @@ class _RevealBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Founder 2026-10-21: the correct answer + its explanation always
+    // read in GREEN (the dark brand green, readable on both banner
+    // washes) - never the red error ink. The explanation now shows on
+    // the correct branch too, exactly like the web overlay.
+    final Color explain =
+        mixTowardBlack(context.primary, 0.55);
     if (ok) {
       return Container(
         width: double.infinity,
@@ -1226,19 +1274,34 @@ class _RevealBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: context.primary),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            MsIcon('check_circle',
-                size: 20, color: context.primary, fill: true),
-            const SizedBox(width: 8),
-            const Text(
-              'Correct!',
-              style: TextStyle(
-                fontFamily: 'Nunito',
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-              ),
+            Row(
+              children: <Widget>[
+                MsIcon('check_circle',
+                    size: 20, color: context.primary, fill: true),
+                const SizedBox(width: 8),
+                const Text(
+                  'Correct!',
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
+            if (q.explanation.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 6),
+              QuestionText(
+                q.explanation,
+                style: RenanceText.caption.copyWith(
+                  color: explain,
+                  height: 1.45,
+                ),
+              ),
+            ],
           ],
         ),
       );
@@ -1255,12 +1318,14 @@ class _RevealBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'Answer: ${q.answer}',
+            // The human answer text (letter-shaped stored answers resolve
+            // to their option text, web parity).
+            'Answer: ${quizAnswerTextOf(q)}',
             style: TextStyle(
               fontFamily: 'Nunito',
               fontSize: 14,
               fontWeight: FontWeight.w800,
-              color: context.onErrorContainer,
+              color: explain,
             ),
           ),
           if (q.explanation.isNotEmpty) ...<Widget>[
@@ -1268,7 +1333,7 @@ class _RevealBanner extends StatelessWidget {
             QuestionText(
               q.explanation,
               style: RenanceText.caption.copyWith(
-                color: context.onErrorContainer,
+                color: explain,
                 height: 1.45,
               ),
             ),

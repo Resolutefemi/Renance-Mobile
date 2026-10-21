@@ -200,6 +200,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
         _Face.select => _SelectFace(
             key: const ValueKey<String>('select'),
             body: _body,
+            courses: _myCourses,
             onChanged: () {
               _reloadCourses();
               widget.onNeedsResync?.call();
@@ -226,12 +227,14 @@ class _CoursesScreenState extends State<CoursesScreen> {
           ),
         _Face.manage => _ManageFace(
             key: const ValueKey<String>('manage'),
+            courses: _myCourses,
             onChanged: () {
               _reloadCourses();
               widget.onNeedsResync?.call();
             },
             onDone: () => setState(() => _face = _Face.desk),
             onChangeDesk: () => setState(() => _face = _Face.itype),
+            onOpenCourse: _openCourse,
           ),
       },
     );
@@ -508,10 +511,18 @@ class _ListFace extends StatelessWidget {
 }
 
 class _CourseCard extends StatelessWidget {
-  const _CourseCard({required this.course, required this.onTap});
+  const _CourseCard({required this.course, required this.onTap, this.onRemove});
 
   final MyCourse course;
   final VoidCallback onTap;
+
+  /// The remove key for the manage face's YOUR COURSES section (founder
+  /// 2026-10-21: "the cancel button on the course card is not well
+  /// positioned - only the x button should be on the RHS"). It rides as
+  /// an inline flex sibling - vertically centred on the right-hand side
+  /// - never the old floating corner overlay, and the '>' chevron is
+  /// GONE from every card: only the × sits on the right.
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -574,8 +585,35 @@ class _CourseCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          MsIcon('chevron_right', size: 20, color: context.outlineDark),
+          // The one RHS control: the remove × (inline, centred). The old
+          // chevron_right and the floating top-right overlay are gone.
+          if (onRemove != null) ...<Widget>[
+            const SizedBox(width: 10),
+            // Own gesture - a tap here must NOT also open the course.
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onRemove,
+              child: Container(
+                width: 30,
+                height: 30,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: RenanceColors.cardinal.withValues(alpha: 0.10),
+                  border: Border.all(
+                    color: RenanceColors.cardinal.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                child: const MsIcon(
+                  'close',
+                  size: 16,
+                  color: RenanceColors.cardinal,
+                  wght: 700,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -584,15 +622,90 @@ class _CourseCard extends StatelessWidget {
 
 // ---------------------------------------------------------- select face
 
+/// The YOUR COURSES section (founder 2026-10-21): every course the
+/// student already takes rides at the TOP of both add/remove faces -
+/// exactly like the web manage page - each card carrying its own ×.
+/// No searching, no hunting through shelves: one tap removes a course.
+class _YourCoursesSection extends StatelessWidget {
+  const _YourCoursesSection({
+    required this.courses,
+    required this.enrolledIds,
+    required this.onOpen,
+    required this.onRemove,
+  });
+
+  final List<MyCourse> courses;
+  final Set<String> enrolledIds;
+  final void Function(MyCourse course)? onOpen;
+  final void Function(String id) onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    // Optimistic: a just-tapped × hides the card at once - the parent's
+    // reload confirms it a beat later.
+    final List<MyCourse> mine = courses
+        .where((MyCourse c) => enrolledIds.contains(c.id))
+        .toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text.rich(
+          TextSpan(
+            text: 'YOUR COURSES',
+            style: TextStyle(
+              fontFamily: 'Nunito',
+              fontSize: 12.5,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.8,
+              color: context.textSecondary,
+            ),
+            children: <InlineSpan>[
+              TextSpan(
+                text: '  - tap the × to remove one',
+                style: TextStyle(
+                  fontFamily: 'Nunito',
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0,
+                  color:
+                      context.textSecondary.withValues(alpha: 0.75),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        for (final MyCourse c in mine)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _CourseCard(
+              course: c,
+              onTap: onOpen == null ? () {} : () => onOpen!(c),
+              onRemove: () => onRemove(c.id),
+            ),
+          ),
+        const SizedBox(height: 6),
+      ],
+    );
+  }
+}
+
 class _SelectFace extends StatefulWidget {
   const _SelectFace({
     super.key,
     required this.body,
+    required this.courses,
     required this.onChanged,
     required this.onDone,
   });
 
   final String body;
+
+  /// The student's FULL enrolled list (every desk body) - the payload
+  /// source of truth for the picker. The old flag-only mirror dropped
+  /// every enrolled course living beyond the first catalog page, so one
+  /// toggle silently wiped it on the next save.
+  final List<MyCourse> courses;
   final VoidCallback onChanged;
   final VoidCallback onDone;
 
@@ -605,12 +718,14 @@ class _SelectFaceState extends State<_SelectFace> {
   bool _loading = true;
   String? _error;
   List<CatalogItem> _all = <CatalogItem>[];
-  // Optimistic in-list mirror (the web's ref flip).
-  Set<String> _inList = <String>{};
+  // Optimistic enrolled mirror (the web's ref flip): the full
+  // my-courses list first, catalog/shelf flags folded on top.
+  Set<String> _enrolledIds = <String>{};
 
   @override
   void initState() {
     super.initState();
+    _enrolledIds = <String>{for (final MyCourse c in widget.courses) c.id};
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -630,7 +745,8 @@ class _SelectFaceState extends State<_SelectFace> {
       if (!mounted) return;
       setState(() {
         _all = items;
-        _inList = <String>{
+        _enrolledIds = <String>{
+          ..._enrolledIds,
           for (final CatalogItem i in items)
             if (i.inList) i.id,
         };
@@ -643,27 +759,27 @@ class _SelectFaceState extends State<_SelectFace> {
     }
   }
 
-  Future<void> _toggle(CatalogItem item) async {
-    final bool nowIn = !_inList.contains(item.id);
+  Future<void> _toggleId(String id) async {
+    final bool nowIn = !_enrolledIds.contains(id);
     // Optimistic flip; rollback + notice on failure (web parity).
     setState(() {
       if (nowIn) {
-        _inList.add(item.id);
+        _enrolledIds.add(id);
       } else {
-        _inList.remove(item.id);
+        _enrolledIds.remove(id);
       }
     });
     final ApiClient api = context.read<ApiClient>();
     try {
-      await api.learnSetMyCourses(_inList.toList());
+      await api.learnSetMyCourses(_enrolledIds.toList());
       widget.onChanged();
     } catch (_) {
       if (!mounted) return;
       setState(() {
         if (nowIn) {
-          _inList.remove(item.id);
+          _enrolledIds.remove(id);
         } else {
-          _inList.add(item.id);
+          _enrolledIds.add(id);
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -682,7 +798,9 @@ class _SelectFaceState extends State<_SelectFace> {
         ? _all
         : _all
             .where(
-              (CatalogItem i) => i.title.toLowerCase().contains(q),
+              (CatalogItem i) =>
+                  i.title.toLowerCase().contains(q) ||
+                  i.id.toLowerCase().contains(q),
             )
             .toList();
     return Column(
@@ -721,22 +839,31 @@ class _SelectFaceState extends State<_SelectFace> {
                   ? _SyncingCard(message: _error!)
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-                      itemCount: shown.length,
+                      itemCount: shown.length + (widget.courses.isEmpty ? 0 : 1),
                       itemBuilder: (BuildContext context, int i) {
-                        final CatalogItem item = shown[i];
+                        // YOUR COURSES first (founder 2026-10-21): the
+                        // student's picked courses ride ABOVE the catalog
+                        // with their own × - no hunting through search to
+                        // remove one, exactly like the web manage page.
+                        if (i == 0 && widget.courses.isNotEmpty) {
+                          return _YourCoursesSection(
+                            courses: widget.courses,
+                            enrolledIds: _enrolledIds,
+                            onOpen: null,
+                            onRemove: _toggleId,
+                          );
+                        }
+                        final int index =
+                            i - (widget.courses.isEmpty ? 0 : 1);
+                        final CatalogItem item = shown[index];
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: _CatalogRow(
                             title: item.title,
                             sub: '${item.topicCount} topics · in your list',
-                            subBold: _inList.contains(item.id),
-                            checked: _inList.contains(item.id),
-                            onTap: () => _toggle(item),
-                            // the founder's small ❌ on the right-hand
-                            // tip of every taken course (2026-10-20)
-                            onRemove: _inList.contains(item.id)
-                                ? () => _toggle(item)
-                                : null,
+                            subBold: _enrolledIds.contains(item.id),
+                            checked: _enrolledIds.contains(item.id),
+                            onTap: () => _toggleId(item.id),
                           ),
                         );
                       },
@@ -754,7 +881,6 @@ class _CatalogRow extends StatelessWidget {
     required this.checked,
     required this.onTap,
     this.subBold = false,
-    this.onRemove,
   });
 
   final String title;
@@ -762,10 +888,6 @@ class _CatalogRow extends StatelessWidget {
   final bool checked;
   final bool subBold;
   final VoidCallback onTap;
-
-  /// The small ❌ at the right-hand tip of taken courses (founder
-  /// 2026-10-20); null hides it for rows not in the list.
-  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -819,33 +941,10 @@ class _CatalogRow extends StatelessWidget {
               ],
             ),
           ),
-          // the small ❌ at the right-hand tip of taken courses
-          if (checked && onRemove != null) ...<Widget>[
-            const SizedBox(width: 10),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onRemove,
-              child: Container(
-                width: 26,
-                height: 26,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: RenanceColors.cardinal.withValues(alpha: 0.10),
-                  border: Border.all(
-                    color: RenanceColors.cardinal.withValues(alpha: 0.35),
-                    width: 1,
-                  ),
-                ),
-                child: const MsIcon(
-                  'close',
-                  size: 15,
-                  color: RenanceColors.cardinal,
-                  wght: 700,
-                ),
-              ),
-            ),
-          ],
+          // Founder 2026-10-21: the red cancel ❌ is GONE from the
+          // selection rows - the checkbox already adds/removes, so the
+          // red key was a duplicate that cluttered every taken row.
+          // Removal now lives in YOUR COURSES at the top of the page.
         ],
       ),
     );
@@ -1302,14 +1401,24 @@ class _DeskFace extends StatelessWidget {
 class _ManageFace extends StatefulWidget {
   const _ManageFace({
     super.key,
+    required this.courses,
     required this.onChanged,
     required this.onDone,
     required this.onChangeDesk,
+    this.onOpenCourse,
   });
 
+  /// The student's FULL enrolled list - renders the YOUR COURSES
+  /// section at the top (founder 2026-10-21: "the mobile app course
+  /// additions/remove page should list the courses a user is already
+  /// doing at the top like the website own - users don't need to
+  /// search for their course to remove it") and guarantees the save
+  /// payload never drops courses living beyond the loaded shelves.
+  final List<MyCourse> courses;
   final VoidCallback onChanged;
   final VoidCallback onDone;
   final VoidCallback onChangeDesk;
+  final void Function(MyCourse course)? onOpenCourse;
 
   @override
   State<_ManageFace> createState() => _ManageFaceState();
@@ -1323,7 +1432,11 @@ class _ManageFaceState extends State<_ManageFace> {
   DeskShelves? _shelves;
   List<DeskCourse> _others = <DeskCourse>[];
   int _othersTotal = 0;
-  Set<String> _inList = <String>{};
+  // Optimistic enrolled mirror: the full my-courses list first, then
+  // every shelf/search inList flag folded on top (web mineRef parity -
+  // the payload is always the WHOLE list, so a shelf that loads late
+  // can never wipe a picked course again).
+  Set<String> _enrolledIds = <String>{};
   List<DeskCourse> _results = <DeskCourse>[];
   bool _searching = false;
   String _query = '';
@@ -1337,6 +1450,7 @@ class _ManageFaceState extends State<_ManageFace> {
   @override
   void initState() {
     super.initState();
+    _enrolledIds = <String>{for (final MyCourse c in widget.courses) c.id};
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -1355,7 +1469,8 @@ class _ManageFaceState extends State<_ManageFace> {
       if (!mounted) return;
       setState(() {
         _shelves = shelves;
-        _inList = <String>{
+        _enrolledIds = <String>{
+          ..._enrolledIds,
           for (final DeskCourse c in shelves.general)
             if (c.inList) c.id,
           for (final DeskCourse c in shelves.departmental)
@@ -1385,7 +1500,7 @@ class _ManageFaceState extends State<_ManageFace> {
         }
         _othersTotal = total;
         for (final DeskCourse c in items) {
-          if (c.inList) _inList.add(c.id);
+          if (c.inList) _enrolledIds.add(c.id);
         }
       });
     } catch (_) {}
@@ -1411,35 +1526,69 @@ class _ManageFaceState extends State<_ManageFace> {
           _results = res;
           _searching = false;
           for (final DeskCourse c in res) {
-            if (c.inList) _inList.add(c.id);
+            if (c.inList) _enrolledIds.add(c.id);
           }
         });
       } catch (_) {
+        // Founder 2026-10-21 - the search must NEVER look dead: the
+        // local shelf filter below already shows instant matches, so a
+        // failed/slow server search just means "local results only".
         if (mounted) setState(() => _searching = false);
       }
     });
   }
 
-  Future<void> _toggle(DeskCourse c) async {
-    final bool nowIn = !_inList.contains(c.id);
+  /// Instant client-side matches over every ALREADY-LOADED course
+  /// (general shelf + departmental shelf + borrowed pages), matched on
+  /// code / title / department. This is what makes the search feel
+  /// alive the moment two characters land, even offline.
+  List<DeskCourse> _localMatches() {
+    final String needle = _query.trim().toLowerCase();
+    final DeskShelves? shelves = _shelves;
+    if (needle.length < 2 || shelves == null) return const <DeskCourse>[];
+    final Map<String, DeskCourse> seen = <String, DeskCourse>{};
+    for (final DeskCourse c in <DeskCourse>[
+      ...shelves.general,
+      ...shelves.departmental,
+      ..._others,
+    ]) {
+      if (seen.containsKey(c.id)) continue;
+      final String hay =
+          '${c.code} ${c.title} ${c.department}'.toLowerCase();
+      if (hay.contains(needle)) seen[c.id] = c;
+    }
+    return seen.values.toList();
+  }
+
+  /// Server hits first (they rank across the whole catalogue), then the
+  /// local matches the server missed - deduped by id.
+  List<DeskCourse> _mergedResults() {
+    final List<DeskCourse> local = _localMatches()
+        .where((DeskCourse c) => !_results.any((DeskCourse r) => r.id == c.id))
+        .toList();
+    return <DeskCourse>[..._results, ...local];
+  }
+
+  Future<void> _toggleId(String id) async {
+    final bool nowIn = !_enrolledIds.contains(id);
     setState(() {
       if (nowIn) {
-        _inList.add(c.id);
+        _enrolledIds.add(id);
       } else {
-        _inList.remove(c.id);
+        _enrolledIds.remove(id);
       }
     });
     final ApiClient api = context.read<ApiClient>();
     try {
-      await api.learnSetMyCourses(_inList.toList());
+      await api.learnSetMyCourses(_enrolledIds.toList());
       widget.onChanged();
     } catch (_) {
       if (!mounted) return;
       setState(() {
         if (nowIn) {
-          _inList.remove(c.id);
+          _enrolledIds.remove(id);
         } else {
-          _inList.add(c.id);
+          _enrolledIds.add(id);
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1492,7 +1641,7 @@ class _ManageFaceState extends State<_ManageFace> {
   Future<void> _saveAiPicks() async {
     if (_aiPicked.isEmpty) return;
     final ApiClient api = context.read<ApiClient>();
-    final Set<String> merged = <String>{..._inList, ..._aiPicked};
+    final Set<String> merged = <String>{..._enrolledIds, ..._aiPicked};
     try {
       await api.learnSetMyCourses(merged.toList());
       widget.onChanged();
@@ -1529,6 +1678,13 @@ class _ManageFaceState extends State<_ManageFace> {
     final DeskShelves? shelves = _shelves;
     if (shelves == null) return const SizedBox.shrink();
 
+    // Founder 2026-10-21 - the search finally WORKS: two characters
+    // flip the list into a merged results view (instant local shelf
+    // matches + the ranked server hits), and the AI panel / request /
+    // shelves step aside until the query clears.
+    final bool isSearching = _query.trim().length >= 2;
+    final List<DeskCourse> merged = isSearching ? _mergedResults() : const <DeskCourse>[];
+
     return Column(
       children: <Widget>[
         SizedBox(height: MediaQuery.paddingOf(context).top +66),
@@ -1542,7 +1698,7 @@ class _ManageFaceState extends State<_ManageFace> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Your courses - tap the checkbox to add or remove one',
+                      'Add / remove courses',
                       style: TextStyle(
                         fontFamily: 'Nunito',
                         fontSize: 15,
@@ -1587,103 +1743,124 @@ class _ManageFaceState extends State<_ManageFace> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: <Widget>[
-              // search results (live)
-              if (_results.isNotEmpty) ...<Widget>[
-                for (final DeskCourse c in _results)
+              // YOUR COURSES first (founder 2026-10-21): every course the
+              // student already takes, listed at the top like the web
+              // manage page - the × removes it, no searching required.
+              if (widget.courses.isNotEmpty)
+                _YourCoursesSection(
+                  courses: widget.courses,
+                  enrolledIds: _enrolledIds,
+                  onOpen: widget.onOpenCourse,
+                  onRemove: _toggleId,
+                ),
+              // search results (live, merged: server + local shelves)
+              if (isSearching) ...<Widget>[
+                if (merged.isEmpty && !_searching)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    child: Text(
+                      'Nothing matches "${_query.trim()}". Try a course '
+                      'code (three letters) or a topic.',
+                      textAlign: TextAlign.center,
+                      style: RenanceText.caption.copyWith(
+                        fontSize: 12.5,
+                        color: context.textSecondary,
+                      ),
+                    ),
+                  )
+                else ...<Widget>[
+                  for (final DeskCourse c in merged)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _DeskRow(
+                        course: c,
+                        inList: _enrolledIds.contains(c.id),
+                        onTap: () => _toggleId(c.id),
+                      ),
+                    ),
+                ],
+              ] else ...<Widget>[
+                // AI finder
+                _AiFinderPanel(
+                  controller: _aiText,
+                  busy: _aiBusy,
+                  lines: _aiLines,
+                  picked: _aiPicked,
+                  onRun: _runAiFinder,
+                  onTogglePick: (String id) => setState(() {
+                    if (_aiPicked.contains(id)) {
+                      _aiPicked.remove(id);
+                    } else {
+                      _aiPicked.add(id);
+                    }
+                  }),
+                  onSave: _saveAiPicks,
+                ),
+                const SizedBox(height: 12),
+                // course request
+                _RequestCard(onOpen: _openRequestSheet),
+                const SizedBox(height: 16),
+                // shelves
+                Text(
+                  _shelfGeneralTitle(shelves.institutionType),
+                  style: RenanceText.bodyMedium,
+                ),
+                const SizedBox(height: 10),
+                for (final DeskCourse c in shelves.general)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _DeskRow(
                       course: c,
-                      inList: _inList.contains(c.id),
-                      onTap: () => _toggle(c),
-                      onRemove: () => _toggle(c),
+                      inList: _enrolledIds.contains(c.id),
+                      onTap: () => _toggleId(c.id),
                     ),
                   ),
+                const SizedBox(height: 12),
+                Text(
+                  '${shelves.departmentName} courses',
+                  style: RenanceText.bodyMedium,
+                ),
                 const SizedBox(height: 10),
-              ],
-              // AI finder
-              _AiFinderPanel(
-                controller: _aiText,
-                busy: _aiBusy,
-                lines: _aiLines,
-                picked: _aiPicked,
-                onRun: _runAiFinder,
-                onTogglePick: (String id) => setState(() {
-                  if (_aiPicked.contains(id)) {
-                    _aiPicked.remove(id);
-                  } else {
-                    _aiPicked.add(id);
-                  }
-                }),
-                onSave: _saveAiPicks,
-              ),
-              const SizedBox(height: 12),
-              // course request
-              _RequestCard(onOpen: _openRequestSheet),
-              const SizedBox(height: 16),
-              // shelves
-              Text(
-                _shelfGeneralTitle(shelves.institutionType),
-                style: RenanceText.bodyMedium,
-              ),
-              const SizedBox(height: 10),
-              for (final DeskCourse c in shelves.general)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _DeskRow(
-                    course: c,
-                    inList: _inList.contains(c.id),
-                    onTap: () => _toggle(c),
-                    onRemove: () => _toggle(c),
+                for (final DeskCourse c in shelves.departmental)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _DeskRow(
+                      course: c,
+                      inList: _enrolledIds.contains(c.id),
+                      onTap: () => _toggleId(c.id),
+                    ),
                   ),
+                const SizedBox(height: 12),
+                Text(
+                  "Other departments' courses - $_othersTotal borrowable",
+                  style: RenanceText.bodyMedium,
                 ),
-              const SizedBox(height: 12),
-              Text(
-                '${shelves.departmentName} courses',
-                style: RenanceText.bodyMedium,
-              ),
-              const SizedBox(height: 10),
-              for (final DeskCourse c in shelves.departmental)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _DeskRow(
-                    course: c,
-                    inList: _inList.contains(c.id),
-                    onTap: () => _toggle(c),
-                    onRemove: () => _toggle(c),
+                const SizedBox(height: 10),
+                for (final DeskCourse c in _others)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _DeskRow(
+                      course: c,
+                      inList: _enrolledIds.contains(c.id),
+                      onTap: () => _toggleId(c.id),
+                    ),
                   ),
-                ),
-              const SizedBox(height: 12),
-              Text(
-                "Other departments' courses - $_othersTotal borrowable",
-                style: RenanceText.bodyMedium,
-              ),
-              const SizedBox(height: 10),
-              for (final DeskCourse c in _others)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _DeskRow(
-                    course: c,
-                    inList: _inList.contains(c.id),
-                    onTap: () => _toggle(c),
-                    onRemove: () => _toggle(c),
-                  ),
-                ),
-              if (_othersTotal > _others.length)
-                Center(
-                  child: TextButton(
-                    onPressed: () => _loadOthers(_others.length),
-                    child: Text(
+                if (_othersTotal > _others.length)
+                  Center(
+                    child: TextButton(
+                      onPressed: () => _loadOthers(_others.length),
+                      child: Text(
                         'Show more (${_othersTotal - _others.length} more)'),
                   ),
                 ),
-              const SizedBox(height: 8),
-              Center(
-                child: TextButton(
-                  onPressed: widget.onChangeDesk,
-                  child: const Text('Change department or institution kind'),
+                const SizedBox(height: 8),
+                Center(
+                  child: TextButton(
+                    onPressed: widget.onChangeDesk,
+                    child: const Text('Change department or institution kind'),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -1700,12 +1877,11 @@ class _ManageFaceState extends State<_ManageFace> {
   }
 }
 
-/// One desk course row: checkbox + code badge + title + meta + (for
-/// courses already in the list) a small remove key on the RIGHT-HAND
-/// TIP of the card - founder 2026-10-20: "make it easy for users to
-/// remove their courses by listing their courses on the add/remove
-/// courses page with each course the user is already taking with a
-/// cancel ❌ button, a small one on the RHS tip of the course card".
+/// One desk course row: checkbox + code badge + title + meta. Founder
+/// 2026-10-21: the small cancel ❌ that used to ride the right-hand tip
+/// is REMOVED - the checkbox already toggles, and removal lives in the
+/// YOUR COURSES section at the top of the manage page (one obvious
+/// place to delete a course, no red clutter on every taken row).
 /// The selected style stays the calm wash (seed 8% face + seed border)
 /// so the title and meta stay readable in EVERY appearance colour.
 class _DeskRow extends StatelessWidget {
@@ -1713,17 +1889,11 @@ class _DeskRow extends StatelessWidget {
     required this.course,
     required this.inList,
     required this.onTap,
-    this.onRemove,
   });
 
   final DeskCourse course;
   final bool inList;
   final VoidCallback onTap;
-
-  /// Non-null only for rows backed by the student's real list: the ❌
-  /// key at the card's right tip removes the course (a tap here must
-  /// NOT also toggle the row, so it carries its own gesture).
-  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -1797,33 +1967,7 @@ class _DeskRow extends StatelessWidget {
               ],
             ),
           ),
-          // the small ❌ at the right-hand tip of taken courses
-          if (inList && onRemove != null) ...<Widget>[
-            const SizedBox(width: 10),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onRemove,
-              child: Container(
-                width: 26,
-                height: 26,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: RenanceColors.cardinal.withValues(alpha: 0.10),
-                  border: Border.all(
-                    color: RenanceColors.cardinal.withValues(alpha: 0.35),
-                    width: 1,
-                  ),
-                ),
-                child: const MsIcon(
-                  'close',
-                  size: 15,
-                  color: RenanceColors.cardinal,
-                  wght: 700,
-                ),
-              ),
-            ),
-          ],
+          // (the old right-tip ❌ removed - founder 2026-10-21)
         ],
       ),
     );

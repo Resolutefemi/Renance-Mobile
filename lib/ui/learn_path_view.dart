@@ -41,9 +41,14 @@ const List<(Color, Color)> kUnitThemes = <(Color, Color)>[
 (Color, Color) unitTheme(int unitIndex) =>
     kUnitThemes[(unitIndex - 1) % kUnitThemes.length];
 
-/// The pinned unit-banner height (py-2.5 + 13px name + badge + border),
-/// the exact resting height of the web's sticky banner.
-const double kUnitBannerExtent = 50;
+/// The pinned unit-banner height - founder 2026-10-21: the old 50px
+/// extent (38px of visible banner after the bottom margin) squeezed the
+/// bar into a cramped one-line strip with an ellipsized name. 68px
+/// carries the web banner's presence: py-2.5 padding, up to TWO name
+/// lines (long unit names like "Unit 1 · Matter, Atomic Structure and
+/// Equations" now show in full instead of truncating), badge and the
+/// extruded ledge included.
+const double kUnitBannerExtent = 68;
 
 /// The whole PATH ladder for one course - a sliver list so every unit
 /// banner can PIN at the top of the viewport (the web's sticky
@@ -182,6 +187,9 @@ class _CourseBanner extends StatelessWidget {
                 child: LearnProgressBar(
                   value: path.completedPercent / 100,
                   gold: true,
+                  // Web hero rail h-3.5 = 14px (founder 2026-10-21:
+                  // the default 12px read squeezed next to the web).
+                  height: 14,
                 ),
               ),
               const SizedBox(width: 8),
@@ -273,7 +281,9 @@ class _UnitBanner extends StatelessWidget {
     final bool first = unit.index == 1;
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      // Web banner recipe px-3.5 py-2.5 - the roomy 10px vertical padding
+      // (founder 2026-10-21: the squeezed 8px strip is out).
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -304,13 +314,16 @@ class _UnitBanner extends StatelessWidget {
               // Web parity: the banner prints `u.name` RAW - the API name
               // already carries the "Unit n · " prefix. Prefixing it again
               // produced "Unit 1 · Unit 1 · Matter, Atomic Structure…".
+              // Two lines (web wraps naturally): long unit names show in
+              // full instead of dying in an ellipsis.
               unit.name,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontFamily: 'Nunito',
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
+                height: 1.2,
                 color: Colors.white,
               ),
             ),

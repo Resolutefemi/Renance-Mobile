@@ -906,9 +906,21 @@ class HomeNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double bottomPad = MediaQuery.paddingOf(context).bottom;
-    // The web's safe-area padding: max(0.375rem, env(safe-area-inset-bottom)).
-    final double safePad = bottomPad < 6 ? 6 : bottomPad;
+    // Founder report 2026-10-21 ("the gesture button is overlapping the
+    // base navbar"): on phones whose system bar overlays the app
+    // (edge-to-edge / OEM fullscreen modes that report a 0px bottom
+    // inset) the Android gesture/3-button strip drew straight over the
+    // tab labels. The web recipe max(6, safe-area-inset-bottom) trusts
+    // the reported inset alone - not enough when the OS lies. The nav
+    // now reserves the FULL standard Android bar height (48dp) as the
+    // floor: max(48, reported inset). The extra reserve is white-on-
+    // white under a white navbar - invisible on every device - while
+    // the labels always clear the system strip.
+    final double reported = MediaQuery.paddingOf(context).bottom >
+            MediaQuery.viewPaddingOf(context).bottom
+        ? MediaQuery.paddingOf(context).bottom
+        : MediaQuery.viewPaddingOf(context).bottom;
+    final double safePad = reported < 48 ? 48 : reported;
     final bool dark = context.darkChrome;
     // The dark tier's nav-pill (globals.css): a 9% macaw wash with the
     // 1.5px inset macaw ring instead of the light macaw-light face.
@@ -973,6 +985,14 @@ class HomeNav extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             _labels[i],
+                            // maxLines 1 (founder report 2026-10-21): at
+                            // large font scales "Leagues" wrapped into
+                            // "Leagu / es" and the second line sank into
+                            // the system-bar zone. One clean line, the
+                            // pill grows with the scale instead.
+                            maxLines: 1,
+                            softWrap: false,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontFamily: 'Nunito',
                               fontSize: 9.5,

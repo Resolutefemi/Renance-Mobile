@@ -46,6 +46,11 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
   List<MyCourse> _myCourses = <MyCourse>[];
   LearnProfile? _wallet;
+  /// The institution kind picked at the desk's step-1 gate - rides into
+  /// the step-2 department gate so the department list loads for the
+  /// RIGHT kind immediately (web parity: chooseInstitution advances
+  /// optimistically and the kind travels with it).
+  String? _pickedKind;
   // The focus signature the last load ran under - the hub sits inside
   // the shell's IndexedStack, so initState runs long before the student
   // profile lands. Without this guard a tertiary student tapping the
@@ -55,14 +60,30 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
   bool get _tertiary => context.read<StudentController>().isTertiaryFocus;
 
-  String get _body =>
-      context.read<StudentController>().me?.profile?.exams.firstOrNull ==
-              'WAEC'
-          ? 'WAEC'
-          : context.read<StudentController>().me?.profile?.exams.firstOrNull ==
-                  'NECO'
-              ? 'NECO'
-              : 'JAMB';
+  String get _body {
+    // The desk body the way the SERVER spells it: lowercase 'jamb' /
+    // 'waec' / 'neco' (web learnBodyFromExams parity). The old getter
+    // returned UPPERCASE 'JAMB' and matched the exam strings exactly -
+    // the server's catalog switch only knows the lowercase bodies, so
+    // every JAMB/WAEC/NECO desk fell into the tertiary default and the
+    // course-selection list served UNIVERSITY modules (founder
+    // 2026-10-21: "the jambdesk courses is not bringing the correct
+    // jamb subjects"). Lowercase match on the exam string too, so
+    // 'WAEC 2026'-style values still resolve.
+    final String first =
+        (context.read<StudentController>().me?.profile?.exams.firstOrNull ?? '')
+            .toLowerCase();
+    if (first.contains('waec')) return 'waec';
+    if (first.contains('neco')) return 'neco';
+    return 'jamb';
+  }
+
+  /// The exam body as it is PRINTED (the search hint label).
+  String get _bodyLabel => switch (_body) {
+        'waec' => 'WAEC',
+        'neco' => 'NECO',
+        _ => 'JAMB',
+      };
 
   @override
   void initState() {
@@ -109,9 +130,18 @@ class _CoursesScreenState extends State<CoursesScreen> {
         _myCourses = courses;
         _loading = false;
         // Face routing: tertiary desks without an institutionType answer
-        // the gate first; everyone else starts on their course list.
+        // the gate first; tertiary desks WITH a kind but no department
+        // answer the department gate (founder 2026-10-21: "after a user
+        // picks school type, make sure they are asked for their
+        // department" - the old routing jumped straight to the desk,
+        // silently skipping step 2). Everyone else starts on their
+        // course list.
         if (_tertiary) {
-          _face = wallet.institutionType.isEmpty ? _Face.itype : _Face.desk;
+          _face = wallet.institutionType.isEmpty
+              ? _Face.itype
+              : wallet.department.isEmpty
+                  ? _Face.dept
+                  : _Face.desk;
         } else {
           _face = _Face.list;
         }
@@ -210,11 +240,14 @@ class _CoursesScreenState extends State<CoursesScreen> {
         _Face.itype => _ItypeGate(
             key: const ValueKey<String>('itype'),
             wallet: _wallet,
-            onSaved: _load,
-            onChangeKind: () {},
+            onPicked: (String kind) => setState(() {
+                  _pickedKind = kind;
+                  _face = _Face.dept;
+                }),
           ),
         _Face.dept => _DeptGate(
             key: const ValueKey<String>('dept'),
+            kind: _pickedKind ?? _wallet?.institutionType,
             onSaved: _load,
             onChangeKind: () => setState(() => _face = _Face.itype),
           ),
@@ -791,6 +824,15 @@ class _SelectFaceState extends State<_SelectFace> {
     }
   }
 
+  /// The Select face needs the body's PRINTED label for its search hint
+  /// ('Search JAMB subjects…') while the lowercase payload body rides
+  /// to the server (founder 2026-10-21 body-casing fix).
+  String _selectBodyLabel(String body) => switch (body.toLowerCase()) {
+        'waec' => 'WAEC',
+        'neco' => 'NECO',
+        _ => 'JAMB',
+      };
+
   @override
   Widget build(BuildContext context) {
     final String q = _search.text.trim().toLowerCase();
@@ -815,7 +857,9 @@ class _SelectFaceState extends State<_SelectFace> {
                   controller: _search,
                   onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
-                    hintText: 'Search ${widget.body} subjects…',
+                    // The body as it is PRINTED (JAMB/WAEC/NECO) - the
+                    // payload body travels lowercase for the server.
+                    hintText: 'Search ${_selectBodyLabel(widget.body)} subjects…',
                     prefixIcon: const MsIcon('search', size: 20),
                   ),
                 ),
@@ -954,11 +998,15 @@ class _CatalogRow extends StatelessWidget {
 // ---------------------------------------------------------- itype gate
 
 class _ItypeGate extends StatelessWidget {
-  const _ItypeGate({super.key, this.wallet, required this.onSaved, required this.onChangeKind});
+  const _ItypeGate({super.key, this.wallet, required this.onPicked});
 
   final LearnProfile? wallet;
-  final VoidCallback onSaved;
-  final VoidCallback onChangeKind;
+
+  /// Fired the moment a kind is tapped - the parent routes to the
+  /// DEPARTMENT gate (step 2 of 2). Founder 2026-10-21: the old flow
+  /// saved the kind and reloaded straight onto the desk, so the
+  /// department question NEVER appeared.
+  final ValueChanged<String> onPicked;
 
   static const List<(String, String, String, String)> _kinds =
       <(String, String, String, String)>[
@@ -984,6 +1032,12 @@ class _ItypeGate extends StatelessWidget {
 
   Future<void> _pick(BuildContext context, String itype) async {
     final ApiClient api = context.read<ApiClient>();
+    // Optimistic advance (web chooseInstitution parity): the department
+    // step opens the moment the tap lands; the kind-only save rides
+    // behind. The department pick re-issues BOTH values in one
+    // idempotent call, so a dropped kind save is repaired by the very
+    // next tap without the student ever knowing.
+    widget.onPicked(itype);
     try {
       await api.learnPatchProfile(
         institutionType: itype,
@@ -991,7 +1045,6 @@ class _ItypeGate extends StatelessWidget {
         setDesk: true,
       );
     } catch (_) {}
-    onSaved();
   }
 
   @override
@@ -1071,7 +1124,19 @@ class _ItypeGate extends StatelessWidget {
 // ----------------------------------------------------------- dept gate
 
 class _DeptGate extends StatefulWidget {
-  const _DeptGate({super.key, required this.onSaved, required this.onChangeKind});
+  const _DeptGate({
+    super.key,
+    this.kind,
+    required this.onSaved,
+    required this.onChangeKind,
+  });
+
+  /// The institution kind picked at step 1 (or the wallet's saved kind
+  /// for students returning mid-flow) - the department list loads for
+  /// THIS kind without a profile round-trip, and the department pick
+  /// saves kind + department together (web chooseDepartment parity:
+  /// the payload guard never lets the pair ride apart).
+  final String? kind;
 
   final VoidCallback onSaved;
   final VoidCallback onChangeKind;
@@ -1084,6 +1149,7 @@ class _DeptGateState extends State<_DeptGate> {
   final TextEditingController _search = TextEditingController();
   bool _loading = true;
   String? _error;
+  String _kind = '';
   List<DeskDepartment> _all = <DeskDepartment>[];
 
   @override
@@ -1100,11 +1166,11 @@ class _DeptGateState extends State<_DeptGate> {
 
   Future<void> _load() async {
     final ApiClient api = context.read<ApiClient>();
-    final LearnProfile wallet;
     try {
-      wallet = await api.learnProfile();
-      final List<DeskDepartment> deps =
-          await api.learnDepartments(wallet.institutionType);
+      // The step-1 kind when it travelled in, otherwise one profile
+      // round-trip for students who landed here straight from a reload.
+      _kind = widget.kind ?? (await api.learnProfile()).institutionType;
+      final List<DeskDepartment> deps = await api.learnDepartments(_kind);
       if (!mounted) return;
       setState(() {
         _all = deps;
@@ -1120,7 +1186,13 @@ class _DeptGateState extends State<_DeptGate> {
   Future<void> _pick(DeskDepartment d) async {
     final ApiClient api = context.read<ApiClient>();
     try {
-      await api.learnPatchProfile(setDesk: true, department: d.id);
+      // Kind + department ride together (the web payload guard): never
+      // let the pair land apart on the learner row.
+      await api.learnPatchProfile(
+        institutionType: _kind.isEmpty ? null : _kind,
+        department: d.id,
+        setDesk: true,
+      );
     } catch (_) {}
     widget.onSaved();
   }
@@ -1561,12 +1633,24 @@ class _ManageFaceState extends State<_ManageFace> {
   }
 
   /// Server hits first (they rank across the whole catalogue), then the
-  /// local matches the server missed - deduped by id.
+  /// local matches the server missed - deduped by id - and the whole
+  /// merge re-banded so TITLE/CODE matches always lead (founder
+  /// 2026-10-21: searching "introduction" must open with the
+  /// Introduction-titled courses, never with the alphabetically-earlier
+  /// courses that only carry an "Introduction to…" TOPIC).
   List<DeskCourse> _mergedResults() {
     final List<DeskCourse> local = _localMatches()
         .where((DeskCourse c) => !_results.any((DeskCourse r) => r.id == c.id))
         .toList();
-    return <DeskCourse>[..._results, ...local];
+    final String needle = _query.trim().toLowerCase();
+    final List<DeskCourse> titled = <DeskCourse>[];
+    final List<DeskCourse> rest = <DeskCourse>[];
+    for (final DeskCourse c in <DeskCourse>[..._results, ...local]) {
+      final bool direct = c.title.toLowerCase().contains(needle) ||
+          (c.code.isNotEmpty && c.code.toLowerCase().contains(needle));
+      (direct ? titled : rest).add(c);
+    }
+    return <DeskCourse>[...titled, ...rest];
   }
 
   Future<void> _toggleId(String id) async {

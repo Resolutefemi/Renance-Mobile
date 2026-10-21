@@ -169,7 +169,11 @@ class RenanceNotifications {
         };
         await tts.setPitch(pitch);
         try {
-          final dynamic voices = await tts.getVoices();
+          // `getVoices` is a getter in some flutter_tts majors and a
+          // method in others - awaiting the bare reference compiles for
+          // both and degrades to the pitch-only roll when it yields a
+          // function object instead of a voice list.
+          final dynamic voices = await tts.getVoices;
           if (voices is List) {
             final bool wantFemale = gender != 'man';
             for (final dynamic v in voices) {

@@ -23,9 +23,9 @@ import 'performance_screen.dart';
 import 'saved_questions.dart';
 import 'premium_screen.dart';
 import 'settings_screen.dart';
+import 'about_screen.dart';
 import 'learn_bits.dart';
 import 'msymbols.dart';
-import 'shop_panel.dart';
 import 'social_screens.dart';
 import 'tactile.dart';
 import 'theme.dart';
@@ -211,40 +211,16 @@ class ProfileScreen extends StatelessWidget {
         // Tapping a half opens the lists on the management page.
         _FollowStrip(),
         const SizedBox(height: 12),
-        // Invite friends (the web's referral card): the REN loop.
+        // Invite friends (the web's referral card): 100 diamonds per
+        // friend who joins with your code (founder 2026-10-22 - the
+        // old 3-REN-coins loop is retired with the Ren points it fed).
         if (me?.entitlement?.referralCode.isNotEmpty ?? false)
           _InviteCard(code: me!.entitlement!.referralCode),
         if (me?.entitlement?.referralCode.isNotEmpty ?? false)
           const SizedBox(height: 16),
-        // Shop (web /profile#shop): the gem wallet + the item list.
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: context.card,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const <BoxShadow>[
-              BoxShadow(
-                  color: Color(0x14141C2D), blurRadius: 3, offset: Offset(0, 1)),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  // The web shop header: text-[20px] text-primary-ink -
-                  // the seed-aware green ink, not a flat gray.
-                  MsIcon('storefront', size: 20, color: context.primaryInk),
-                  const SizedBox(width: 8),
-                  Text('Shop', style: RenanceText.sectionTitle),
-                ],
-              ),
-              const SizedBox(height: 14),
-              const ShopPanel(),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
+        // The shop left the profile on the founder's 2026-10-22 order:
+        // it is a full page now (ShopScreen), opened from the home
+        // grid's Storefront tile and the header gems chip.
         // Learning focus: switch between JAMB / WAEC / NECO / tertiary.
         _FocusCard(
           chip: student.targetChip,
@@ -305,12 +281,9 @@ class ProfileScreen extends StatelessWidget {
                   builder: (_) => const SavedQuestionsScreen()));
             },
           ),
-          _MenuItem(
-            icon: 'auto_stories',
-            tint: context.ink,
-            label: 'My Packs',
-            onTap: () => onGoTab(1),
-          ),
+          // My Packs removed (founder 2026-10-22) - the course library
+          // stays on the Courses tab; the profile menu no longer double-
+          // lists it.
           // Downloads removed (founder 2026-10-21: the feature is
           // useless) - the profile menu row is gone with it.
           _MenuItem(
@@ -335,11 +308,16 @@ class ProfileScreen extends StatelessWidget {
                   builder: (_) => const SettingsScreen()));
             },
           ),
+          // My papers removed (founder 2026-10-22) - exam history already
+          // sits in the content group above.
           _MenuItem(
-            icon: 'history_edu',
+            icon: 'info',
             tint: context.textSecondary,
-            label: 'My papers',
-            onTap: () => onGoTab(2),
+            label: 'About Renance',
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => const AboutScreen()));
+            },
           ),
           _MenuItem(
             icon: 'help',
@@ -475,7 +453,7 @@ Future<void> _openIdentityEditor(BuildContext context) async {
                 const SizedBox(height: 4),
                 Text(
                   'Your display name and @handle - the identity every '
-                  'leaderboard, feed and arena seat carries.',
+                  'leaderboard row and feed post carries.',
                   style: RenanceText.caption
                       .copyWith(color: context.textSecondary),
                 ),
@@ -678,7 +656,7 @@ class _InviteCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text('Invite friends, earn REN',
+                Text('Invite friends, earn 100 diamonds',
                     style: TextStyle(
                       fontFamily: 'Nunito',
                       fontSize: 14,

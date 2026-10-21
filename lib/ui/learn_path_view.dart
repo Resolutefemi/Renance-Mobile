@@ -74,14 +74,12 @@ class LearnPathView extends StatelessWidget {
     required this.onOpenTopic,
     required this.onOpenChest,
     required this.onOpenRevision,
-    required this.onManageCourses,
   });
 
   final CoursePathModel path;
   final void Function(TopicNode topic) onOpenTopic;
   final void Function(UnitNode unit) onOpenChest;
   final void Function(UnitNode unit) onOpenRevision;
-  final VoidCallback onManageCourses;
 
   @override
   Widget build(BuildContext context) {
@@ -93,8 +91,10 @@ class LearnPathView extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: <Widget>[
         // the gradient course header scrolls away normally
-        SliverToBoxAdapter(child: _CourseBanner(path: path, onManage: onManageCourses)),
-        const SliverToBoxAdapter(child: SizedBox(height: 20)),
+        SliverToBoxAdapter(child: _CourseBanner(path: path)),
+        // The founder's 2026-10-22 pass: the unit banner rides right
+        // under the hero card (was a 20px float that read as a gap).
+        const SliverToBoxAdapter(child: SizedBox(height: 6)),
         for (final UnitNode unit in path.units)
           // THE PINNED UNIT BANNER - the structural sub-navbar. Founder
           // bug report 2026-10-20: bare sibling SliverPersistentHeaders
@@ -137,10 +137,9 @@ class LearnPathView extends StatelessWidget {
 
 /// The gradient course header: body · department, title, gold progress.
 class _CourseBanner extends StatelessWidget {
-  const _CourseBanner({required this.path, required this.onManage});
+  const _CourseBanner({required this.path});
 
   final CoursePathModel path;
-  final VoidCallback onManage;
 
   @override
   Widget build(BuildContext context) {
@@ -223,21 +222,9 @@ class _CourseBanner extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          // the web's inset pill: rounded-xl border-2 border-white/60
-          // bg-white/15, press sinks 2px
-          TactileButton(
-            onPressed: onManage,
-            height: 36,
-            radius: BorderRadius.circular(12),
-            fontSize: 12,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            expand: false,
-            face: Colors.white.withValues(alpha: 0.15),
-            onFace: Colors.white,
-            edge: Colors.white.withValues(alpha: 0.45),
-            child: const Text('Add / remove courses'),
-          ),
+          // The "Add / remove courses" pill is gone (founder
+          // 2026-10-22): course management lives in the Courses tab,
+          // the map page is a pure learning path.
         ],
       ),
     );

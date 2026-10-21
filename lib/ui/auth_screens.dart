@@ -911,7 +911,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _schoolName = TextEditingController();
   final TextEditingController _fullName = TextEditingController();
   final TextEditingController _email = TextEditingController();
-  // Referral code (optional): mints the referrer 3 REN coins.
+  // Referral code (optional): mints the referrer 100 diamonds.
   final TextEditingController _referral = TextEditingController();
   String _schoolType = 'secondary';
   bool _busy = false;
@@ -1228,7 +1228,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Your friend earns 3 REN coins when you join.',
+              'Your friend earns 100 diamonds when you join.',
               style: TextStyle(
                 fontFamily: 'Nunito',
                 fontSize: 11.5,

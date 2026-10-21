@@ -18,12 +18,12 @@ import '../notifications.dart';
 import '../storage.dart';
 import '../api_client.dart';
 import 'ai_generator_screen.dart';
-import 'arena_lobby_screen.dart';
 import 'account_screens.dart';
 import 'offline_share_screen.dart';
 import 'performance_screen.dart';
 import 'saved_questions.dart';
 import 'gpa_screen.dart';
+import 'shop_screen.dart';
 import 'leaderboard_screen.dart';
 import 'courses_screen.dart';
 import 'league_screen.dart';
@@ -31,14 +31,11 @@ import 'feed_screen.dart';
 import 'quests_screen.dart';
 import 'learn_bits.dart';
 import 'msymbols.dart';
-import 'study_resources_screen.dart';
 import 'study_setup_screen.dart';
-import 'lessons_screen.dart';
 import 'ai_screen.dart';
 import 'ai_sparkle.dart';
 import 'notifications_screen.dart';
 import 'search_screen.dart';
-import 'tutor_screen.dart';
 import 'exam_screen.dart';
 import 'exam_history_screen.dart';
 import 'exam_mode_setup_screen.dart';
@@ -339,7 +336,11 @@ class _HomeScreenState extends State<HomeScreen> {
               onGoTab: _goTab,
             ),
             onBackPressed: _tab == 0 ? null : () => setState(() => _tab = 0),
-            onGems: () => setState(() => _tab = 5),
+            // The gems chip IS the shop door now: one tap opens the full
+            // shop page where diamonds buy streak freezes, hearts, boosts.
+            onGems: () => Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(builder: (_) => const ShopScreen()),
+            ),
             onNotifications: () => Navigator.of(context).push<void>(
               MaterialPageRoute<void>(
                 builder: (_) => NotificationsScreen(
@@ -1116,12 +1117,13 @@ class _LauncherTab extends StatelessWidget {
             const SizedBox(height: 12),
             _FatigueBanner(state: student.fatigue!),
           ],
-          // Launcher grids - 1:1 with the up-to-date web desk: Practice /
-          // Compete / Learn / Tools, the daily drivers on the grid, the
-          // rest in More. -------------------------------------------------
+          // Launcher grids - the founder's 2026-10-22 pass: every row
+          // keeps four live tiles (no blanks), Arena / Review Due / Notes
+          // / Tutor are gone, and each header names what sits under it.
+          // -------------------------------------------------------------
           const SizedBox(height: 8),
           Text(
-            'Practice',
+            'Practice & Exams',
             style: RenanceText.sectionTitle.copyWith(
               color: context.textSecondary,
               fontSize: 14,
@@ -1183,19 +1185,22 @@ class _LauncherTab extends StatelessWidget {
               ),
               Expanded(
                 child: LauncherTile(
-                  msIcon: 'history',
-                  label: 'Review Due',
-                  badge: student.dueTopics > 0 ? '${student.dueTopics}' : null,
-                  badgeColor: RenanceColors.emerald,
-                  onTap: () => onGoTab(2),
+                  msIcon: 'history_edu',
+                  label: 'Exam History',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ExamHistoryScreen(),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-          // Compete ---------------------------------------------------------
+          // Compete & Earn - the quiz and the ladder to rank on, the
+          // quests that pay diamonds, and the shop that spends them.
           const SizedBox(height: 16),
           Text(
-            'Compete',
+            'Compete & Earn',
             style: RenanceText.sectionTitle.copyWith(
               color: context.textSecondary,
               fontSize: 14,
@@ -1204,17 +1209,6 @@ class _LauncherTab extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: <Widget>[
-              Expanded(
-                child: LauncherTile(
-                  msIcon: 'sports_esports',
-                  label: 'Arena',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const ArenaLobbyScreen(),
-                    ),
-                  ),
-                ),
-              ),
               Expanded(
                 child: LauncherTile(
                   msIcon: 'event_repeat',
@@ -1234,20 +1228,32 @@ class _LauncherTab extends StatelessWidget {
                   ),
                 ),
               ),
-              // Study Plan removed (founder 2026-10-21: the feature is
-              // useless) - the slot stays as a quiet blank so every
-              // launcher row keeps the same four-column rhythm.
-              const Expanded(child: SizedBox()),
+              Expanded(
+                child: LauncherTile(
+                  msIcon: 'checklist',
+                  label: 'Quests',
+                  onTap: () => onGoTab(4),
+                ),
+              ),
+              Expanded(
+                child: LauncherTile(
+                  msIcon: 'storefront',
+                  label: 'Shop',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ShopScreen(),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-          // Study Tools - the web's two tiles + the two the founder
-          // asked to fill the empty slots with (2026-10-21: "fill the
-          // two empty spaces under learn with performance analysis and
-          // saved questions"), renamed out of 'Learn' because the
-          // content is no longer just learning material.
+          // Study & AI - the companion, the generator and the two score
+          // lenses (founder 2026-10-21: performance analysis + saved
+          // questions live on the grid; Notes is gone 2026-10-22).
           const SizedBox(height: 16),
           Text(
-            'Study Tools',
+            'Study & AI',
             style: RenanceText.sectionTitle.copyWith(
               color: context.textSecondary,
               fontSize: 14,
@@ -1258,22 +1264,22 @@ class _LauncherTab extends StatelessWidget {
             children: <Widget>[
               Expanded(
                 child: LauncherTile(
-                  msIcon: 'auto_stories',
-                  label: 'Notes',
+                  msIcon: 'smart_toy',
+                  label: 'Renance AI',
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => const LessonsScreen(),
+                      builder: (_) => const AiScreen(),
                     ),
                   ),
                 ),
               ),
               Expanded(
                 child: LauncherTile(
-                  msIcon: 'smart_toy',
-                  label: 'Renance AI',
+                  msIcon: 'auto_awesome',
+                  label: 'AI Generator',
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => const AiScreen(),
+                      builder: (_) => const AiGeneratorScreen(),
                     ),
                   ),
                 ),
@@ -1302,10 +1308,12 @@ class _LauncherTab extends StatelessWidget {
               ),
             ],
           ),
-          // Tools & Resources - the web's three tiles ------------------
+          // Tools - the utilities that don't fit the rows above; the
+          // Tutor is retired (founder 2026-10-22) and Settings now
+          // lives one tap from the desk.
           const SizedBox(height: 16),
           Text(
-            'Tools & Resources',
+            'Tools',
             style: RenanceText.sectionTitle.copyWith(
               color: context.textSecondary,
               fontSize: 14,
@@ -1314,18 +1322,35 @@ class _LauncherTab extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: <Widget>[
-              // Syllabus Map removed (founder 2026-10-21: useless) -
-              // blank slot keeps the four-column rhythm.
-              const Expanded(child: SizedBox()),
               Expanded(
                 child: LauncherTile(
-                  msIcon: 'smart_toy',
-                  iconColor: context.onInverseChip,
-                  highlight: true,
-                  label: 'Tutor',
+                  msIcon: 'calculate',
+                  label: 'GPA Calculator',
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => const TutorEntryScreen(),
+                      builder: (_) => const GpaScreen(),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: LauncherTile(
+                  msIcon: 'search',
+                  label: 'Search',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SearchScreen(),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: LauncherTile(
+                  msIcon: 'settings',
+                  label: 'Settings',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SettingsScreen(),
                     ),
                   ),
                 ),
@@ -1339,7 +1364,6 @@ class _LauncherTab extends StatelessWidget {
                   onTap: () => showMoreSheet(context, onGoTab: onGoTab),
                 ),
               ),
-              const Expanded(child: SizedBox()),
             ],
           ),
           // Recent activity ------------------------------------------------
@@ -2027,48 +2051,17 @@ Future<void> showMoreSheet(
                   crossAxisSpacing: 10,
                   childAspectRatio: 3.2,
                   children: <Widget>[
+                    // The founder's 2026-10-22 pass: every feature that
+                    // lives on the home grid (performance analysis, saved
+                    // questions, AI studio, settings, search, exam
+                    // history, AI generator, GPA calculator) left the
+                    // sheet - no doubles. Study Resources is retired.
+                    // What remains is the genuinely occasional stuff.
                     _MoreTile(
-                      msIcon: 'insights',
-                      label: 'Performance Analysis',
+                      msIcon: 'wifi_off',
+                      label: 'Offline Share',
                       onTap: _push(sheetContext, context,
-                          (_) => const PerformanceScreen()),
-                    ),
-                    _MoreTile(
-                      msIcon: 'bookmark',
-                      label: 'Saved Questions',
-                      onTap: _push(sheetContext, context,
-                          (_) => const SavedQuestionsScreen()),
-                    ),
-                    _MoreTile(
-                      msIcon: 'collections_bookmark',
-                      label: 'Study Resources',
-                      onTap: _push(sheetContext, context,
-                          (_) => const StudyResourcesScreen()),
-                    ),
-                    // Subjects / Downloads / Notifications / Career Bridge
-                    // / Patron Portal / Syllabus Map / Study Plan / Awards
-                    // Hub / Lessons removed from the More sheet (founder
-                    // 2026-10-21: "they are now useless") - the tiles are
-                    // gone app-wide, not just hidden.
-                    _MoreTile(
-                      msIcon: 'smart_toy',
-                      label: 'Renance AI Studio',
-                      onTap: _push(sheetContext, context,
-                          (_) => const AiScreen()),
-                    ),
-                    _MoreTile(
-                      msIcon: 'person',
-                      label: 'Profile',
-                      onTap: () {
-                        Navigator.of(sheetContext).pop();
-                        onGoTab?.call(5);
-                      },
-                    ),
-                    _MoreTile(
-                      msIcon: 'settings',
-                      label: 'Settings',
-                      onTap: _push(sheetContext, context,
-                          (_) => const SettingsScreen()),
+                          (_) => const OfflineShareScreen()),
                     ),
                     _MoreTile(
                       msIcon: 'help',
@@ -2081,38 +2074,6 @@ Future<void> showMoreSheet(
                           applicationLegalese: 'Learn. Practice. Rise.',
                         );
                       },
-                    ),
-                    // Mobile-native extras (no web counterpart) - the same
-                    // 2-column rhythm, full names, zero truncation.
-                    _MoreTile(
-                      msIcon: 'search',
-                      label: 'Search',
-                      onTap: _push(sheetContext, context,
-                          (_) => const SearchScreen()),
-                    ),
-                    _MoreTile(
-                      msIcon: 'history_edu',
-                      label: 'Exam History',
-                      onTap: _push(sheetContext, context,
-                          (_) => const ExamHistoryScreen()),
-                    ),
-                    _MoreTile(
-                      msIcon: 'wifi_off',
-                      label: 'Offline Share',
-                      onTap: _push(sheetContext, context,
-                          (_) => const OfflineShareScreen()),
-                    ),
-                    _MoreTile(
-                      msIcon: 'auto_awesome',
-                      label: 'AI Generator',
-                      onTap: _push(sheetContext, context,
-                          (_) => const AiGeneratorScreen()),
-                    ),
-                    _MoreTile(
-                      msIcon: 'calculate',
-                      label: 'GPA Calculator',
-                      onTap: _push(sheetContext, context,
-                          (_) => const GpaScreen()),
                     ),
                   ],
                 ),

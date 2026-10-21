@@ -178,9 +178,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
       MaterialPageRoute<void>(
         builder: (_) => CoursePathScreen(
           courseId: course.id,
-          onManage: () {
-            setState(() => _face = _tertiary ? _Face.manage : _Face.select);
-          },
           onProgressChanged: () {
             _reloadCourses();
             widget.onNeedsResync?.call();
@@ -748,12 +745,55 @@ class _SelectFaceState extends State<_SelectFace> {
   // Optimistic enrolled mirror (the web's ref flip): the full
   // my-courses list first, catalog/shelf flags folded on top.
   Set<String> _enrolledIds = <String>{};
+  // Courses unchecked during THIS face session. POST /learn/my-courses
+  // is a full replace, so removals must survive the server-union step
+  // in _persistEnrolled (founder wipe bug, 2026-10-22).
+  final Set<String> _removedThisSession = <String>{};
 
   @override
   void initState() {
     super.initState();
     _enrolledIds = <String>{for (final MyCourse c in widget.courses) c.id};
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  /// The destructive-replace guard (founder bug 2026-10-22: adding one
+  /// course on this page wiped the whole list AND its progress). The
+  /// payload is rebuilt from the SERVER's own list every save:
+  /// (server - this-session removals) + local additions. A stale or
+  /// empty local seed can therefore never drop a course the student
+  /// still has, and progress hangs off the course rows we keep.
+  Future<void> _persistEnrolled(ApiClient api) async {
+    Set<String> serverIds = <String>{};
+    try {
+      final List<MyCourse> fresh = await api.learnMyCourses();
+      serverIds = <String>{for (final MyCourse c in fresh) c.id};
+    } catch (_) {
+      // Read failed (offline): fall back to the local mirror alone.
+    }
+    final Set<String> payload = <String>{
+      ...serverIds,
+      ..._enrolledIds,
+    }..removeAll(_removedThisSession);
+    await api.learnSetMyCourses(payload.toList());
+  }
+
+  /// Reconcile the seed with the server's own list - the hub's cached
+  /// _myCourses can be empty from a cold start or a failed fetch, and
+  /// seeding this face from that alone is the root of the wipe bug.
+  Future<void> _reconcileWithServer(ApiClient api) async {
+    try {
+      final List<MyCourse> fresh = await api.learnMyCourses();
+      if (!mounted) return;
+      setState(() {
+        _enrolledIds = <String>{
+          ..._enrolledIds,
+          for (final MyCourse c in fresh) c.id,
+        };
+      });
+    } catch (_) {
+      // Best effort - the save-side guard covers the rest.
+    }
   }
 
   @override
@@ -787,6 +827,7 @@ class _SelectFaceState extends State<_SelectFace> {
         ];
         _loading = false;
       });
+      await _reconcileWithServer(context.read<ApiClient>());
       return;
     }
     final ApiClient api = context.read<ApiClient>();
@@ -805,6 +846,7 @@ class _SelectFaceState extends State<_SelectFace> {
         };
         _loading = false;
       });
+      await _reconcileWithServer(api);
     } on ApiException catch (e) {
       if (mounted) setState(() { _loading = false; _error = e.message; });
     } on NetworkException catch (e) {
@@ -818,13 +860,15 @@ class _SelectFaceState extends State<_SelectFace> {
     setState(() {
       if (nowIn) {
         _enrolledIds.add(id);
+        _removedThisSession.remove(id);
       } else {
         _enrolledIds.remove(id);
+        _removedThisSession.add(id);
       }
     });
     final ApiClient api = context.read<ApiClient>();
     try {
-      await api.learnSetMyCourses(_enrolledIds.toList());
+      await _persistEnrolled(api);
       widget.onChanged();
     } catch (_) {
       if (!mounted) return;
@@ -1548,6 +1592,9 @@ class _ManageFaceState extends State<_ManageFace> {
   // the payload is always the WHOLE list, so a shelf that loads late
   // can never wipe a picked course again).
   Set<String> _enrolledIds = <String>{};
+  // Courses unchecked during THIS face session - survives the
+  // server-union step in _persistEnrolled (founder wipe bug 2026-10-22).
+  final Set<String> _removedThisSession = <String>{};
   List<DeskCourse> _results = <DeskCourse>[];
   bool _searching = false;
   String _query = '';
@@ -1573,6 +1620,42 @@ class _ManageFaceState extends State<_ManageFace> {
     super.dispose();
   }
 
+  /// The destructive-replace guard (founder bug 2026-10-22): the
+  /// payload is rebuilt from the SERVER's own list every save -
+  /// (server - this-session removals) + local additions - so a stale
+  /// or empty local seed can never drop a course or its progress.
+  Future<void> _persistEnrolled(ApiClient api) async {
+    Set<String> serverIds = <String>{};
+    try {
+      final List<MyCourse> fresh = await api.learnMyCourses();
+      serverIds = <String>{for (final MyCourse c in fresh) c.id};
+    } catch (_) {
+      // Read failed (offline): fall back to the local mirror alone.
+    }
+    final Set<String> payload = <String>{
+      ...serverIds,
+      ..._enrolledIds,
+    }..removeAll(_removedThisSession);
+    await api.learnSetMyCourses(payload.toList());
+  }
+
+  /// Reconcile the seed with the server's own list (belt to the save
+  /// side's braces): a cold-start hub cache must not shrink the set.
+  Future<void> _reconcileWithServer(ApiClient api) async {
+    try {
+      final List<MyCourse> fresh = await api.learnMyCourses();
+      if (!mounted) return;
+      setState(() {
+        _enrolledIds = <String>{
+          ..._enrolledIds,
+          for (final MyCourse c in fresh) c.id,
+        };
+      });
+    } catch (_) {
+      // Best effort - the save-side guard covers the rest.
+    }
+  }
+
   Future<void> _load() async {
     final ApiClient api = context.read<ApiClient>();
     try {
@@ -1589,6 +1672,7 @@ class _ManageFaceState extends State<_ManageFace> {
         };
         _loading = false;
       });
+      await _reconcileWithServer(api);
       _loadOthers(0);
     } on ApiException catch (e) {
       if (mounted) setState(() { _loading = false; _error = e.message; });
@@ -1697,13 +1781,15 @@ class _ManageFaceState extends State<_ManageFace> {
     setState(() {
       if (nowIn) {
         _enrolledIds.add(id);
+        _removedThisSession.remove(id);
       } else {
         _enrolledIds.remove(id);
+        _removedThisSession.add(id);
       }
     });
     final ApiClient api = context.read<ApiClient>();
     try {
-      await api.learnSetMyCourses(_enrolledIds.toList());
+      await _persistEnrolled(api);
       widget.onChanged();
     } catch (_) {
       if (!mounted) return;
@@ -1764,9 +1850,14 @@ class _ManageFaceState extends State<_ManageFace> {
   Future<void> _saveAiPicks() async {
     if (_aiPicked.isEmpty) return;
     final ApiClient api = context.read<ApiClient>();
-    final Set<String> merged = <String>{..._enrolledIds, ..._aiPicked};
+    setState(() {
+      _enrolledIds = <String>{..._enrolledIds, ..._aiPicked};
+      for (final String id in _aiPicked) {
+        _removedThisSession.remove(id);
+      }
+    });
     try {
-      await api.learnSetMyCourses(merged.toList());
+      await _persistEnrolled(api);
       widget.onChanged();
       widget.onDone();
     } catch (_) {
@@ -2489,12 +2580,10 @@ class CoursePathScreen extends StatefulWidget {
   const CoursePathScreen({
     super.key,
     required this.courseId,
-    required this.onManage,
     required this.onProgressChanged,
   });
 
   final String courseId;
-  final VoidCallback onManage;
   final VoidCallback onProgressChanged;
 
   @override
@@ -2614,10 +2703,6 @@ class _CoursePathScreenState extends State<CoursePathScreen> {
                                   widget.onProgressChanged();
                                 },
                               );
-                            },
-                            onManageCourses: () {
-                              Navigator.of(context).pop();
-                              widget.onManage();
                             },
                           ),
                         ),

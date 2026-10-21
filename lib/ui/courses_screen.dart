@@ -78,13 +78,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
     return 'jamb';
   }
 
-  /// The exam body as it is PRINTED (the search hint label).
-  String get _bodyLabel => switch (_body) {
-        'waec' => 'WAEC',
-        'neco' => 'NECO',
-        _ => 'JAMB',
-      };
-
   @override
   void initState() {
     super.initState();
@@ -1037,7 +1030,7 @@ class _ItypeGate extends StatelessWidget {
     // behind. The department pick re-issues BOTH values in one
     // idempotent call, so a dropped kind save is repaired by the very
     // next tap without the student ever knowing.
-    widget.onPicked(itype);
+    onPicked(itype);
     try {
       await api.learnPatchProfile(
         institutionType: itype,

@@ -1035,10 +1035,18 @@ class _SchoolStudentDetailsScreenState
           ),
           const SizedBox(height: 8),
           TextField(
-            decoration: const InputDecoration(
-              prefixIcon: MsIcon('search', fill: true),
+            decoration: InputDecoration(
+              // Founder 2026-10-21: glyph centred on the text line,
+              // 10px inside a 36px hit area (the app's bar).
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 10),
+                child: MsIcon('search',
+                    fill: true, size: 18, color: context.textSecondary),
+              ),
+              prefixIconConstraints:
+                  const BoxConstraints(minWidth: 36, minHeight: 36),
               hintText: 'Search name or admission number',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
               isDense: true,
             ),
             onChanged: (String v) => setState(() => _query = v),

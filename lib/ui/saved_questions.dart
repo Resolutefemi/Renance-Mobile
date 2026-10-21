@@ -254,8 +254,15 @@ class _SavedQuestionsScreenState extends State<SavedQuestionsScreen> {
                 onChanged: (String v) => setState(() => _query = v.trim().toLowerCase()),
                 decoration: InputDecoration(
                   hintText: 'Search Question',
-                  prefixIcon:
-                      MsIcon('search', size: 20, color: context.outline),
+                  // Founder 2026-10-21: glyph centred on the text
+                  // line, 10px inside a 36px hit area (the app's bar).
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 10),
+                    child: MsIcon('search',
+                        size: 18, color: context.textSecondary),
+                  ),
+                  prefixIconConstraints:
+                      const BoxConstraints(minWidth: 36, minHeight: 36),
                   filled: true,
                   fillColor: context.card,
                   enabledBorder: OutlineInputBorder(

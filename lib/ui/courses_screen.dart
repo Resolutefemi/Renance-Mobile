@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 
 import '../api_client.dart';
 import '../controllers.dart';
+import '../learn_catalog_secondary.dart';
 import '../learn_controller.dart';
 import '../learn_models.dart';
 import '../models.dart' show Profile;
@@ -762,6 +763,32 @@ class _SelectFaceState extends State<_SelectFace> {
   }
 
   Future<void> _load() async {
+    // Founder report 2026-10-21 ("the jamb desk courses is not showing
+    // jamb subjects it's showing tertiary institution desk courses"):
+    // the JAMB/WAEC/NECO desks list the HARDCODED secondary subjects
+    // (Chemistry, Physics, Mathematics...) exactly like the web - the
+    // server's /learn/catalog only serves the tertiary desk, so the old
+    // server fetch with body=jamb returned university modules.
+    final String body = widget.body.toLowerCase();
+    if (bodyHasHardcodedShelf(body)) {
+      if (!mounted) return;
+      setState(() {
+        _all = <CatalogItem>[
+          for (final HardCatalogItem s in secondaryCatalog(body))
+            CatalogItem(
+              id: s.id,
+              title: s.title,
+              topicCount: s.n,
+              faculty: 'Senior Secondary',
+              institutionType: _selectBodyLabel(body),
+              body: body,
+              inList: false,
+            ),
+        ];
+        _loading = false;
+      });
+      return;
+    }
     final ApiClient api = context.read<ApiClient>();
     try {
       final (List<CatalogItem> items, _) = await api.learnCatalog(
@@ -853,7 +880,16 @@ class _SelectFaceState extends State<_SelectFace> {
                     // The body as it is PRINTED (JAMB/WAEC/NECO) - the
                     // payload body travels lowercase for the server.
                     hintText: 'Search ${_selectBodyLabel(widget.body)} subjects…',
-                    prefixIcon: const MsIcon('search', size: 20),
+                    // Founder 2026-10-21: the search glyph rides 10px
+                    // inside a 36px hit area, centred on the text line
+                    // (the app's established bar, university_screens).
+                    prefixIcon: Padding(
+                      padding: const EdgeInsets.only(left: 10),
+                      child: MsIcon('search',
+                          size: 18, color: context.textSecondary),
+                    ),
+                    prefixIconConstraints:
+                        const BoxConstraints(minWidth: 36, minHeight: 36),
                   ),
                 ),
               ),
@@ -1230,9 +1266,17 @@ class _DeptGateState extends State<_DeptGate> {
               TextField(
                 controller: _search,
                 onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Search departments…',
-                  prefixIcon: MsIcon('search', size: 20),
+                  // Founder 2026-10-21: glyph centred on the text line,
+                  // 10px inside a 36px hit area (the app's bar).
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 10),
+                    child:
+                        MsIcon('search', size: 18, color: context.textSecondary),
+                  ),
+                  prefixIconConstraints:
+                      const BoxConstraints(minWidth: 36, minHeight: 36),
                 ),
               ),
               const SizedBox(height: 6),
@@ -1799,9 +1843,17 @@ class _ManageFaceState extends State<_ManageFace> {
               TextField(
                 controller: _search,
                 onChanged: _onSearchChanged,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Search by code (CSC, MTH…), title or topic',
-                  prefixIcon: MsIcon('search', size: 20),
+                  // Founder 2026-10-21: glyph centred on the text line,
+                  // 10px inside a 36px hit area (the app's bar).
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 10),
+                    child:
+                        MsIcon('search', size: 18, color: context.textSecondary),
+                  ),
+                  prefixIconConstraints:
+                      const BoxConstraints(minWidth: 36, minHeight: 36),
                 ),
               ),
               if (_searching)

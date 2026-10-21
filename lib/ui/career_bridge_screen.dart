@@ -356,8 +356,16 @@ class _CareerBridgeScreenState extends State<CareerBridgeScreen> {
                           decoration: InputDecoration(
                             hintText:
                                 'Search degrees (e.g. B.Sc Marine Biology)',
-                            icon: MsIcon('search',
-                                size: 24, color: context.textSecondary),
+                            // Founder 2026-10-21: was `icon:` (the glyph
+                            // drifted outside the bar) - now the app's
+                            // centred prefix pattern.
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.only(left: 10),
+                              child: MsIcon('search',
+                                  size: 18, color: context.textSecondary),
+                            ),
+                            prefixIconConstraints: const BoxConstraints(
+                                minWidth: 36, minHeight: 36),
                             border: InputBorder.none,
                             filled: false,
                           ),

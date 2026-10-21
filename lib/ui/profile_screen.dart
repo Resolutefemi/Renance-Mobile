@@ -776,17 +776,14 @@ class _FocusCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: context.selectionBlue,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(chip,
-                    style:
-                        RenanceText.labelMono.copyWith(fontSize: 12)),
-              ),
+              // Founder report 2026-10-21 ("that scattered text in the
+              // profile page"): the chip pill is GONE - the web's
+              // collapsed card (app/profile/page.tsx) carries NO pill;
+              // the target name lives only in the caption. The pill was
+              // an unbounded sibling, so at large system font scales it
+              // devoured the row and crushed 'Learning focus' into one
+              // letter per line. Expanded column + fixed siblings can
+              // never stack again.
               const SizedBox(width: 8),
               MsIcon('swap_horiz',
                   size: 24, color: context.outlineLight),

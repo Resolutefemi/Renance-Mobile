@@ -167,21 +167,22 @@ class UniversityHomeTab extends StatelessWidget {
             ),
             // web: pt-1.5 - the 6px gap between header and chips.
             const SizedBox(height: 6),
-            // Founder report 2026-10-21 ("look at the way the courses
-            // listed under the Active Courses is"): the old 28px
-            // horizontal strip clipped every course past the fourth
-            // ("BIO 1..." hanging half-cut off the screen edge) with no
-            // scroll hint. A wrapped chip cloud shows every course in
-            // full - rows flow, nothing is cut, the same web chip.
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
+            // Founder report 2026-10-21 ("it should be like the way it
+            // was before"): back to the ORIGINAL one-row strip - the
+            // wrapped chip cloud stacked 4 tall rows and pushed Study
+            // below the fold. The strip scrolls sideways, exactly as
+            // the web's overflow-x row (courses.slice(0, 10), gap-1.5).
+            SizedBox(
+              height: 28,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
                 children: <Widget>[
                   // web: courses.slice(0, 10), gap-1.5 (6px).
                   for (final UniCourse c in schoolCourses.take(10))
-                    _CourseChip(c.label, false),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: _CourseChip(c.label, false),
+                    ),
                 ],
               ),
             ),

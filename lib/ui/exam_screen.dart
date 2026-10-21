@@ -138,7 +138,7 @@ class _ExamScreenState extends State<ExamScreen> {
               dedupKey: 'exam.$attemptId',
             );
           } catch (_) {}
-          if (!mounted) return;
+          if (!mounted || !context.mounted) return;
           Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
             builder: (_) => ReviewDetailScreen(
               attemptId: attemptId,

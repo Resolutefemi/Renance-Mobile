@@ -152,6 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await ensureNotificationOnboarding(context);
     } catch (_) {}
+    if (!mounted) return;
     try {
       await maybeShowChannelInvite(context);
     } catch (_) {}

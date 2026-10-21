@@ -15,7 +15,6 @@ import '../learn_controller.dart';
 import '../learn_models.dart' show SocialConnections;
 import '../models.dart';
 import '../storage.dart';
-import 'downloads_screen.dart';
 import 'exam_history_screen.dart';
 import 'focus_sheet.dart';
 import 'gpa_screen.dart';
@@ -312,15 +311,8 @@ class ProfileScreen extends StatelessWidget {
             label: 'My Packs',
             onTap: () => onGoTab(1),
           ),
-          _MenuItem(
-            icon: 'download',
-            tint: context.ink,
-            label: 'Downloads',
-            onTap: () {
-              Navigator.of(context).push(MaterialPageRoute<void>(
-                  builder: (_) => const DownloadsScreen()));
-            },
-          ),
+          // Downloads removed (founder 2026-10-21: the feature is
+          // useless) - the profile menu row is gone with it.
           _MenuItem(
             icon: 'calculate',
             tint: context.ink,

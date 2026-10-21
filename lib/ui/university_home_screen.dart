@@ -13,14 +13,12 @@ import 'package:provider/provider.dart';
 import '../controllers.dart';
 import '../storage.dart';
 import 'arena_lobby_screen.dart';
-import 'downloads_screen.dart';
 import 'gpa_screen.dart';
 import 'home_screen.dart' show LauncherTile, showMoreSheet;
 import 'leaderboard_screen.dart';
 import 'lessons_screen.dart';
 import 'msymbols.dart';
 import 'review_screen.dart';
-import 'study_plan_screen.dart';
 import 'study_setup_screen.dart';
 import 'tactile.dart';
 import 'theme.dart';
@@ -288,16 +286,8 @@ class UniversityHomeTab extends StatelessWidget {
                   ),
                 ),
               ),
-              Expanded(
-                child: LauncherTile(
-                  msIcon: 'event_note',
-                  label: 'Study Plan',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                        builder: (_) => const StudyPlanScreen()),
-                  ),
-                ),
-              ),
+              // Study Plan removed (founder 2026-10-21: useless).
+              const Expanded(child: SizedBox()),
             ],
           ),
           // Tools & Resources - shared with the other desks
@@ -324,16 +314,8 @@ class UniversityHomeTab extends StatelessWidget {
                   ),
                 ),
               ),
-              Expanded(
-                child: LauncherTile(
-                  msIcon: 'download',
-                  label: 'Downloads',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                        builder: (_) => const DownloadsScreen()),
-                  ),
-                ),
-              ),
+              // Downloads removed (founder 2026-10-21: useless).
+              const Expanded(child: SizedBox()),
               Expanded(
                 child: LauncherTile(
                   msIcon: 'smart_toy',

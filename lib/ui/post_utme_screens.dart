@@ -17,7 +17,6 @@ import '../controllers.dart';
 import '../models.dart';
 import '../storage.dart';
 import 'arena_lobby_screen.dart';
-import 'downloads_screen.dart';
 import 'exam_screen.dart';
 import 'home_screen.dart' show LauncherTile, showMoreSheet;
 import 'leaderboard_screen.dart';
@@ -25,7 +24,6 @@ import 'lessons_screen.dart';
 import 'msymbols.dart';
 import 'packs_screen.dart';
 import 'renance_logo.dart';
-import 'study_plan_screen.dart';
 import 'study_setup_screen.dart';
 import 'tactile.dart';
 import 'theme.dart';
@@ -271,8 +269,8 @@ class PostUtmeHomeTab extends StatelessWidget {
               ),
             ],
           ),
-          // Compete grid - the web's exact four: Arena / Leaderboard /
-          // Study Plan / Notes.
+          // Compete grid - Arena / Leaderboard / Notes (Study Plan
+          // removed - founder 2026-10-21: the feature is useless).
           const SizedBox(height: 16),
           Text(
             'Compete',
@@ -304,16 +302,8 @@ class PostUtmeHomeTab extends StatelessWidget {
                   ),
                 ),
               ),
-              Expanded(
-                child: LauncherTile(
-                  msIcon: 'event_note',
-                  label: 'Study Plan',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const StudyPlanScreen()),
-                  ),
-                ),
-              ),
+              // Study Plan removed (founder 2026-10-21: useless).
+              const Expanded(child: SizedBox()),
               Expanded(
                 child: LauncherTile(
                   msIcon: 'auto_stories',
@@ -388,16 +378,8 @@ class PostUtmeHomeTab extends StatelessWidget {
                   ),
                 ),
               ),
-              Expanded(
-                child: LauncherTile(
-                  msIcon: 'download',
-                  label: 'Downloads',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                        builder: (_) => const DownloadsScreen()),
-                  ),
-                ),
-              ),
+              // Downloads removed (founder 2026-10-21: useless).
+              const Expanded(child: SizedBox()),
               Expanded(
                 child: LauncherTile(
                   msIcon: 'smart_toy',

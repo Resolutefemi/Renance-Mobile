@@ -18,7 +18,6 @@ library;
 import 'dart:io';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
@@ -52,21 +51,17 @@ class RenanceNotifications {
     } catch (_) {
       // Notifications are sugar, never a gate.
     }
-    // Best-effort timezone database so the daily streak reminder lands
-    // at the student's LOCAL hour (zonedSchedule cannot run without a
-    // location). Any failure falls back to Africa/Lagos - right for the
-    // app's home crowd and harmless elsewhere; double-wrapped so even a
-    // malformed zone name can never escape init().
+    // Best-effort timezone database so the daily streak reminder can be
+    // zoned (zonedSchedule cannot run without a location). The OS zone
+    // name plugin (flutter_timezone) drags a Java+Kotlin Android module
+    // whose JVM pins break the release Gradle graph, so Renance pins to
+    // Africa/Lagos - home crowd, UTC+1, no DST; WAT is the local time
+    // that matters for a Nigerian exam-prep nudge.
     try {
       tzdata.initializeTimeZones();
-      final String name = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(name));
+      tz.setLocalLocation(tz.getLocation('Africa/Lagos'));
     } catch (_) {
-      try {
-        tz.setLocalLocation(tz.getLocation('Africa/Lagos'));
-      } catch (_) {
-        // Scheduling stays silent this session; nothing else is hurt.
-      }
+      // Scheduling stays silent this session; nothing else is hurt.
     }
   }
 

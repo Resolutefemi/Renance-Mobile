@@ -31,10 +31,11 @@ dependencies:
   # nudges and download completions drop as real Android notifications.
   flutter_local_notifications: ^19.5.0
   # The daily streak reminder (founder pass VIII): zonedSchedule needs a
-  # timezone database, and the local zone name comes from the OS, so the
-  # reminder lands at the student's own 19:00 wherever they are.
+  # timezone database. Pure-Dart tzdata only - the OS zone-name plugin
+  # (flutter_timezone) ships a Java+Kotlin Android module whose JVM pins
+  # break the release Gradle graph, so Renance anchors to Africa/Lagos
+  # (WAT, no DST - the audience's clock).
   timezone: ^0.10.0
-  flutter_timezone: ^3.0.1
   # Secure session storage (founder directive 2026-10-11): the auth
   # token lives in the OS-grade encrypted store (Android
   # EncryptedSharedPreferences / iOS Keychain) so the session survives

@@ -24,14 +24,13 @@ subprojects {
 // their Java task compiles at 11 while their Kotlin task falls back to
 // 1.8, which Gradle rejects. Pin every Kotlin compile in every module to
 // the same target the Java side already uses.
+// Lazy rule - safe even for subprojects that are already evaluated.
 subprojects {
-    afterEvaluate {
-        tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>()
-            .configureEach {
-                compilerOptions.jvmTarget
-                    .set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
-            }
-    }
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>()
+        .configureEach {
+            compilerOptions.jvmTarget
+                .set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        }
 }
 
 tasks.register<Delete>("clean") {

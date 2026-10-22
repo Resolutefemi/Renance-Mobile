@@ -4,6 +4,7 @@ import 'package:provider/single_child_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_client.dart';
+import 'app_icon.dart';
 import 'config.dart';
 import 'controllers.dart';
 import 'learn_controller.dart';
@@ -50,6 +51,9 @@ Future<void> main() async {
   // stored seed so the update lands on the website's default palette;
   // the Appearance picker stays and a fresh pick re-tints everything.
   await theme.migrateSeedToWebDefault();
+  // Founder pass IX: the launcher icon matches the saved appearance
+  // from the first launch on (the setMode path covers live changes).
+  await RenanceAppIcon.apply(theme.mode);
 
   runApp(
     RenanceApp(

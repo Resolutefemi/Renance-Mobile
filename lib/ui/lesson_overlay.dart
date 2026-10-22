@@ -376,6 +376,13 @@ class _LessonOverlayScreenState extends State<_LessonOverlayScreen> {
         forgiven: res.streakForgiven,
         forgivesLeft: res.streakForgivesLeft,
       );
+      // Founder pass IX: the day the streak lands on a milestone
+      // (7/14/21/30/50/100/200/365), the feed-share offer rides right
+      // behind the celebration. Silent no-op on every other day.
+      if (!mounted) return;
+      try {
+        await maybeOfferStreakShare(context, streak: res.streak);
+      } catch (_) {}
     }
     if (res.milestone != null) {
       if (!mounted) return;

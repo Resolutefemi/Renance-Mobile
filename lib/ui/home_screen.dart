@@ -21,6 +21,7 @@ import 'ai_generator_screen.dart';
 import 'account_screens.dart';
 import 'about_screen.dart';
 import 'channel_invite.dart';
+import 'celebrations.dart' show showStreakScreen;
 import 'notification_nag.dart';
 import 'performance_screen.dart';
 import 'saved_questions.dart';
@@ -676,7 +677,14 @@ class HomeHeader extends StatelessWidget {
                 ),
               ],
               const SizedBox(width: 6),
-              StreakPill(streak: streak),
+              // Founder pass IX: the pill opens the full streak page -
+              // the Duolingo cut with the week row and freeze marks.
+              _Tappable(
+                onTap: streak > 0
+                    ? () => showStreakScreen(context, streak: streak)
+                    : null,
+                child: StreakPill(streak: streak),
+              ),
               // The freeze pill renders only while freezes are held
               // (web rule) - reads the live learn wallet.
               FreezeHeaderPill(

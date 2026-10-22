@@ -62,6 +62,36 @@ Future<void> maybeOfferUnitShare(
   );
 }
 
+/// The streak lengths that earn a feed-share offer (founder pass IX:
+/// 'also streak like 7 days streak, 14 days streak, and more').
+const List<int> kStreakShareMilestones = <int>[
+  7, 14, 21, 30, 50, 100, 200, 365,
+];
+
+/// Offer to share a STREAK milestone - fires the moment the streak
+/// lands exactly on one of [kStreakShareMilestones] (7, 14, 21, 30,
+/// 50, 100, 200, 365 days), right after the streak celebration pops.
+/// Gated at 'renance.streakShare.{n}' so each milestone asks once;
+/// any other streak value returns silently.
+Future<void> maybeOfferStreakShare(
+  BuildContext context, {
+  required int streak,
+}) {
+  if (!kStreakShareMilestones.contains(streak)) {
+    return Future<void>.value();
+  }
+  return _offer(
+    context,
+    icon: 'local_fire_department',
+    headline: '$streak-day streak!',
+    subtitle:
+        'Consistency builds mastery - your crew should see this one.',
+    postText: 'Just hit a $streak-day streak on Renance 🔥 consistency '
+        'builds mastery - renance.app',
+    dedupStoreKey: 'renance.streakShare.$streak',
+  );
+}
+
 /// The shared gate + popup plumbing. The dialog pops with true after a
 /// successful share and false on a clean dismiss; either way the
 /// milestone marks done. A network failure keeps the dialog open with
@@ -133,7 +163,12 @@ class _AchievementShareDialogState extends State<_AchievementShareDialog> {
   void initState() {
     super.initState();
     // The celebration pattern: confetti bursts over the popup on open.
-    showConfetti(context);
+    // Post-frame so the OverlayEntry insert never lands mid-build (an
+    // in-build insert throws markNeedsBuild-during-build and would
+    // kill the share offer outright).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) showConfetti(context);
+    });
   }
 
   Future<void> _share() async {

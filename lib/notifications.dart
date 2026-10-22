@@ -114,10 +114,20 @@ class RenanceNotifications {
   /// next occurrence of the local [hour]:00 and repeated daily
   /// (matchDateTimeComponents: time). The body is the day's rotating
   /// voice line, so the popup and the spoken line always agree.
+  ///
+  /// Respects the Settings 'Study Reminders' toggle ('renance.reminders'):
+  /// an explicit false cancels instead of scheduling - the key ABSENT
+  /// means ON (the founder's one-nudge-a-day promise is the default).
   static Future<void> scheduleDailyStreakReminder({int hour = 19}) async {
     await init();
     if (!_ready) return;
     try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      if (prefs.containsKey(remindersKey) &&
+          !(prefs.getBool(remindersKey) ?? true)) {
+        await _plugin.cancel(streakReminderId);
+        return;
+      }
       await _plugin.cancel(streakReminderId);
       final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
       tz.TZDateTime scheduled =
@@ -238,6 +248,19 @@ class RenanceNotifications {
     );
   }
 
+  /// The Settings 'Study Reminders' switch calls this on OFF: tonight's
+  /// zoned reminder is dropped immediately. ON goes through
+  /// [scheduleDailyStreakReminder] which re-arms.
+  static Future<void> cancelDailyStreakReminder() async {
+    await init();
+    if (!_ready) return;
+    try {
+      await _plugin.cancel(streakReminderId);
+    } catch (_) {
+      // Sugar, never a gate.
+    }
+  }
+
   /// The one channel every Renance notification rides (same details the
   /// immediate show() always used, reused for the scheduled reminder).
   static const AndroidNotificationDetails _channel = AndroidNotificationDetails(
@@ -256,6 +279,9 @@ class RenanceNotifications {
   static const int downloadDoneId = 2001;
   static const int reviewDueId = 2002;
   static const int streakReminderId = 2003;
+
+  /// prefs key of the Settings 'Study Reminders' switch. ABSENT = ON.
+  static const String remindersKey = 'renance.reminders';
 
   /// Tonight's reminder headline (founder pass VIII).
   static const String streakReminderTitle = 'Don\'t break your streak! 🔥';

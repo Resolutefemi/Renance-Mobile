@@ -1,10 +1,14 @@
 /// The WhatsApp channel invite (founder pass VIII): a beautiful bottom
 /// sheet that asks the student to join the official Renance WhatsApp
 /// channel - new features, study packs and exam tips straight to their
-/// WhatsApp. Gated in prefs: never again once joined, and at most once
-/// every three days when they keep deferring, so it teaches without
-/// nagging. The sheet matches the app's 3D FLAT style (icon bubble on
-/// the seed primary, extruded green key).
+/// WhatsApp.
+///
+/// Founder pass IX directive: the invite pops on EVERY app open until
+/// the student actually taps Join - deferring (Maybe later, a drag, a
+/// tap outside) is not a no, so the ask comes back next launch. Only
+/// the joined flag (set when the channel link opens) retires it. The
+/// sheet matches the app's 3D FLAT style (icon bubble on the seed
+/// primary, extruded green key).
 library;
 
 import 'package:flutter/material.dart';
@@ -20,25 +24,19 @@ const String kRenanceChannelUrl =
     'https://whatsapp.com/channel/0029VbDnzhVKAwEltcgbOZ3K';
 
 const String _kJoined = 'renance.channel.joined';
-const String _kLastAsk = 'renance.channel.lastAsk';
 
-/// Pops the invite at most every 3 days (first run included) and never
-/// again after the student taps through. Safe to call on every launch;
-/// every failure is swallowed - a prefs hiccup must not gate the app.
+/// Pops the invite on EVERY app open until the student joins (founder
+/// pass IX: 'always pop up if the user doesn't click join'). Only the
+/// joined flag - stamped when the WhatsApp link actually opens -
+/// retires it. Safe to call on every launch; every failure is
+/// swallowed - a prefs hiccup must not gate the app.
 Future<void> maybeShowChannelInvite(BuildContext context) async {
   try {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     if (prefs.getBool(_kJoined) ?? false) return;
-    final int nowMs = DateTime.now().millisecondsSinceEpoch;
-    final int lastAsk = prefs.getInt(_kLastAsk) ?? 0;
-    if (lastAsk != 0 && nowMs - lastAsk < const Duration(days: 3).inMilliseconds) {
-      return;
-    }
     if (!context.mounted) return;
-    // Stamped BEFORE the sheet opens so every dismissal path (the
-    // button, a drag, a tap outside) counts as the ask - the founder's
-    // '3 days' throttle holds no matter how the sheet closes.
-    await prefs.setInt(_kLastAsk, nowMs);
+    // Retire the old throttle stamp if a previous release left one.
+    await prefs.remove('renance.channel.lastAsk');
     if (!context.mounted) return;
     await showModalBottomSheet<void>(
       context: context,
@@ -140,7 +138,7 @@ class _ChannelInviteSheet extends StatelessWidget {
                 await prefs.setBool(_kJoined, true);
               } catch (_) {
                 // A failed launch leaves the gate unmarked - the invite
-                // simply comes back another day.
+                // simply comes back on the next open.
               }
               if (context.mounted) Navigator.of(context).pop();
             },
@@ -150,17 +148,7 @@ class _ChannelInviteSheet extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           TextButton(
-            onPressed: () async {
-              try {
-                final SharedPreferences prefs =
-                    await SharedPreferences.getInstance();
-                await prefs.setInt(
-                  _kLastAsk,
-                  DateTime.now().millisecondsSinceEpoch,
-                );
-              } catch (_) {}
-              if (context.mounted) Navigator.of(context).pop();
-            },
+            onPressed: () => Navigator.of(context).pop(),
             child: Text(
               'Maybe later',
               style: TextStyle(

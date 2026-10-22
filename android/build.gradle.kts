@@ -25,11 +25,17 @@ subprojects {
 // 1.8, which Gradle rejects. Pin every Kotlin compile in every module to
 // the same target the Java side already uses.
 // Lazy rule - safe even for subprojects that are already evaluated.
+// One JVM target for EVERY module, both compilers, so the Java/Kotlin
+// consistency check can never trip again (plugins ship different pins).
 subprojects {
+    tasks.withType<JavaCompile>().configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17.name
+        targetCompatibility = JavaVersion.VERSION_17.name
+    }
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>()
         .configureEach {
             compilerOptions.jvmTarget
-                .set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+                .set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
 }
 

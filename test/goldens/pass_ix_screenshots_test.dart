@@ -2,7 +2,13 @@
 // the golden pipeline - the streak page (with the blue Streak-Freeze
 // day), the feed-share achievement popup, and the achievement as it
 // lands in the real FeedScreen. Run with:
-//   flutter test --update-goldens test/goldens/pass_ix_screenshots_test.dart
+//   RENANCE_GOLDENS=1 flutter test test/goldens/pass_ix_screenshots_test.dart
+//     --update-goldens
+// Opt-in like the theme_flip harness: golden renders depend on local
+// fonts, so normal runs (and CI) skip them - the PNGs are regenerated
+// artifacts, not committed baselines.
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -34,6 +40,12 @@ Future<void> _pump(WidgetTester tester, Widget child) async {
 }
 
 void main() {
+  // Opt-in gate (the theme_flip convention): goldens render differently
+  // per font environment, so plain `flutter test` and CI skip them.
+  if (Platform.environment['RENANCE_GOLDENS'] != '1') {
+    return;
+  }
+
   testWidgets('streak page - flame, orange count-up, week row with the '
       'blue freeze day and the amber today ring', (WidgetTester tester) async {
     _phone(tester);

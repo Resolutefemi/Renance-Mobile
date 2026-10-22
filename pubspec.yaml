@@ -1,7 +1,7 @@
 name: renance
 description: "Renance, the global student study OS. Offline-first mobile shell."
 publish_to: "none"
-version: 2.6.23+29
+version: 2.7.0+30
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -51,6 +51,10 @@ dependencies:
   # The learn module's curated drawing library ships server-side SVGs
   # (stroke-2 currentColor figures); the web renders them inline.
   flutter_svg: ^2.0.10
+  # The Android home-screen widget (founder 2026-10-22, the Duolingo
+  # streak-widget pass): a native RemoteViews widget fed from Dart via
+  # home_widget so the streak flame lives on the launcher.
+  home_widget: ^0.7.0
 
 dev_dependencies:
   flutter_test:
@@ -81,6 +85,8 @@ flutter:
     - assets/brand/renance_mark.png
     - assets/brand/renance_mark_white.png
     - assets/nerdc_schemes.json
+    - assets/schools.json
+    - assets/avatars/
   fonts:
     - family: Nunito
       fonts:

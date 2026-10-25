@@ -16,6 +16,27 @@
         android:maxSdkVersion="29"/>
     <!-- Download progress + sync notifications (Android 13+ runtime). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- STREAK REMINDER RELIABILITY (2026-10-26, the founder's "the
+         notification only talks when I open the app" bug): the daily
+         19:00 reminder rode AndroidScheduleMode.inexactAllowWhileIdle
+         with no alarm permission at all, so Doze batched it out and
+         OEM battery savers (MIUI clears the app like a force-stop)
+         dropped it entirely - the reminder only ever landed via the
+         app-open touch. Exact alarms (user-granted special access on
+         Android 12+) survive both, and the boot receiver re-arms them
+         after a restart. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- The direct "ignore battery optimizations" ask (a one-time
+         system dialog from the notification nag flow): without the
+         exemption, Xiaomi/Huawei/OPPO builds of Android kill the app
+         hard enough to cancel AlarmManager jobs - the #1 cause of
+         reminders that only fire while the app is open. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <!-- flutter_local_notifications' scheduling receivers, declared
+         here EXPLICITLY as belt-over-braces (the plugin's own manifest
+         normally merges them; a future plugin regression must never
+         silently un-schedule the reminder again). -->
     <application
         android:label="Renance"
         android:name="${applicationName}"
@@ -76,6 +97,21 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/streak_widget_info"/>
+        </receiver>
+        <!-- Streak reminder alarms: the plugin receiver that posts a
+             scheduled notification, and its boot twin that re-schedules
+             every future alarm after a reboot or an app update. -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
+            android:exported="false"/>
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
         </receiver>
         <!-- BOOT-CRASH FIX, round 2 (2026-10-23) - the REAL root cause of
              "Renance keeps stopping" on 30/31/32. home_widget pulls

@@ -19,6 +19,7 @@ import 'dart:io';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -62,6 +63,64 @@ class RenanceNotifications {
       tz.setLocalLocation(tz.getLocation('Africa/Lagos'));
     } catch (_) {
       // Scheduling stays silent this session; nothing else is hurt.
+    }
+  }
+
+  /// prefs key recording that the one-time ALARM PRECISION ask (the
+  /// exact-alarm special access + the battery-optimization exemption)
+  /// has already been made - the ask never repeats.
+  static const String alarmAskKey = 'renance.alarmPrecisionAsked';
+
+  /// The alarm-precision pass (2026-10-26, the "reminder only fires
+  /// when the app is open" bug): asks Android for the two grants an
+  /// unattended alarm needs, best-effort and safe to repeat -
+  ///
+  ///  1. SCHEDULE_EXACT_ALARM (Alarms & reminders special access,
+  ///     Android 12+): exact alarms survive Doze batch-deferral; the
+  ///     inexact fallback the old schedule rode could slip hours or
+  ///     never land under OEM battery savers.
+  ///  2. REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: the direct system
+  ///     dialog; Xiaomi/OPPO/Huawei kill uncleared apps hard enough
+  ///     to cancel AlarmManager jobs entirely.
+  ///
+  /// Never throws, never blocks study: a denied grant simply leaves
+  /// the reminder on the (still scheduled) inexact path.
+  static Future<void> ensureAlarmPrecision() async {
+    if (!Platform.isAndroid) return;
+    try {
+      if (await Permission.scheduleExactAlarm.isGranted != true) {
+        await Permission.scheduleExactAlarm.request();
+      }
+    } catch (_) {
+      // Pre-12 devices answer denied; the inexact schedule covers them.
+    }
+    try {
+      if (await Permission.ignoreBatteryOptimizations.isGranted != true) {
+        await Permission.ignoreBatteryOptimizations.request();
+      }
+    } catch (_) {
+      // The exemption is sugar; the OS dialog failing is not fatal.
+    }
+  }
+
+  /// Whether the one-time alarm-precision ask already ran (prefs).
+  static Future<bool> alarmPrecisionAsked() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(alarmAskKey) ?? false;
+    } catch (_) {
+      return true; // prefs trouble: skip the ask rather than nag forever.
+    }
+  }
+
+  /// Marks the alarm-precision ask as done (the nag flow calls this
+  /// right after firing [ensureAlarmPrecision] so it runs once).
+  static Future<void> markAlarmPrecisionAsked() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(alarmAskKey, true);
+    } catch (_) {
+      // Sugar, never a gate.
     }
   }
 
@@ -135,15 +194,35 @@ class RenanceNotifications {
       if (!scheduled.isAfter(now)) {
         scheduled = scheduled.add(const Duration(days: 1));
       }
-      await _plugin.zonedSchedule(
-        streakReminderId,
-        streakReminderTitle,
-        _todayVoiceLine().$1,
-        scheduled,
-        _details,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        matchDateTimeComponents: DateTimeComponents.time,
-      );
+      // EXACT first (2026-10-26): an exact allow-while-idle alarm fires
+      // at 19:00 through Doze and OEM idle - the inexact mode the old
+      // schedule rode gets batched out and, on MIUI-class devices, is
+      // the core reason the reminder only ever landed on app open.
+      // exactAllowWhileIdle throws SecurityException when the user has
+      // not granted the special access; fall back to the inexact
+      // schedule (still allow-while-idle) so the reminder is never
+      // lost, just potentially deferred.
+      try {
+        await _plugin.zonedSchedule(
+          streakReminderId,
+          streakReminderTitle,
+          _todayVoiceLine().$1,
+          scheduled,
+          _details,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.time,
+        );
+      } catch (_) {
+        await _plugin.zonedSchedule(
+          streakReminderId,
+          streakReminderTitle,
+          _todayVoiceLine().$1,
+          scheduled,
+          _details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.time,
+        );
+      }
     } catch (_) {
       // Scheduling is sugar, never a gate.
     }
@@ -261,14 +340,18 @@ class RenanceNotifications {
     }
   }
 
-  /// The one channel every Renance notification rides (same details the
-  /// immediate show() always used, reused for the scheduled reminder).
+  /// The one channel every Renance notification rides. v2 (2026-10-26):
+  /// channel settings are immutable once created, and the original
+  /// 'renance' channel shipped at DEFAULT importance - on MIUI-class
+  /// devices that files the reminder into the silent drawer. The v2
+  /// channel is HIGH: heads-up banner + sound, which is what a daily
+  /// streak nudge (the app's whole one-nudge-a-day promise) needs.
   static const AndroidNotificationDetails _channel = AndroidNotificationDetails(
-    'renance',
+    'renance_v2',
     'Renance updates',
     channelDescription: 'Study reminders and download progress',
-    importance: Importance.defaultImportance,
-    priority: Priority.defaultPriority,
+    importance: Importance.high,
+    priority: Priority.high,
   );
   static const NotificationDetails _details = NotificationDetails(
     android: _channel,

@@ -74,6 +74,12 @@ const Map<String, IconData> msCodepoints = <String, IconData>{
   'chat_bubble': IconData(0xe0cb, fontFamily: 'MaterialSymbolsOutlined'),
   'check': IconData(0xe668, fontFamily: 'MaterialSymbolsOutlined'),
   'check_circle': IconData(0xf0be, fontFamily: 'MaterialSymbolsOutlined'),
+  // 2026-10-26 pass: the Quests tile on the home grid rendered as an
+  // EMPTY BOX - 'checklist' (0xe6b1) was never in this map, so MsIcon
+  // painted a blank square. Same story for 'devices' and 'domain' on
+  // the About screen. Codepoints from the official Material Symbols
+  // codepoints file; the glyphs are back in the rebuilt subset font.
+  'checklist': IconData(0xe6b1, fontFamily: 'MaterialSymbolsOutlined'),
   'checkroom': IconData(0xf19e, fontFamily: 'MaterialSymbolsOutlined'),
   'chevron_left': IconData(0xe5cb, fontFamily: 'MaterialSymbolsOutlined'),
   'chevron_right': IconData(0xe5cc, fontFamily: 'MaterialSymbolsOutlined'),
@@ -95,7 +101,9 @@ const Map<String, IconData> msCodepoints = <String, IconData>{
   'delete': IconData(0xe92e, fontFamily: 'MaterialSymbolsOutlined'),
   'delete_forever': IconData(0xe92b, fontFamily: 'MaterialSymbolsOutlined'),
   'description': IconData(0xe873, fontFamily: 'MaterialSymbolsOutlined'),
+  'devices': IconData(0xe326, fontFamily: 'MaterialSymbolsOutlined'),
   'devices_other': IconData(0xe337, fontFamily: 'MaterialSymbolsOutlined'),
+  'domain': IconData(0xe7ee, fontFamily: 'MaterialSymbolsOutlined'),
   'diamond': IconData(0xead5, fontFamily: 'MaterialSymbolsOutlined'),
   'directions_run': IconData(0xe566, fontFamily: 'MaterialSymbolsOutlined'),
   'done_all': IconData(0xe877, fontFamily: 'MaterialSymbolsOutlined'),

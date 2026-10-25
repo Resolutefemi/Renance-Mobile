@@ -943,11 +943,14 @@ class HomeNav extends StatelessWidget {
         : MediaQuery.viewPaddingOf(context).bottom;
     final double safePad = reported;
     final bool dark = context.darkChrome;
-    // The dark tier's nav-pill (globals.css): a 9% macaw wash with the
-    // 1.5px inset macaw ring instead of the light macaw-light face.
-    final Color pillColor = dark
-        ? const Color(0x171CB0F6) // macaw 9%
-        : RenanceColors.macawLight;
+    // Founder directive 2026-10-26 (the navbar active pill): the active
+    // tab wears the pale macaw-light slab with macaw-dark ink in BOTH
+    // tiers - exactly the first screenshot's Leagues pill. The dark
+    // tier's old 9% wash + inset macaw ring read as a murky blue tile
+    // and the founder rejected it ("make the active pill colour look
+    // like the one in the first picture"). The ink below already picks
+    // macawDark for the active tab, so one face color carries both.
+    final Color pillColor = RenanceColors.macawLight;
     return Container(
       decoration: BoxDecoration(
         color: context.card,
@@ -979,17 +982,6 @@ class HomeNav extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: i == active ? pillColor : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
-                        boxShadow: i == active && dark
-                            ? <BoxShadow>[
-                                // inset 1.5px macaw ring
-                                BoxShadow(
-                                  color: const Color(0x731CB0F6),
-                                  offset: const Offset(0, 0),
-                                  blurRadius: 0,
-                                  spreadRadius: -1.5,
-                                ),
-                              ]
-                            : null,
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,

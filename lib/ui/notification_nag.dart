@@ -19,8 +19,13 @@ import 'theme.dart';
 
 /// Android-only gate called from the post-splash bootstrap: ensures the
 /// permission, nags with the explanation dialog while it is still
-/// denied, and then re-arms today's streak reminder in every path
+/// denied, then re-arms today's streak reminder in every path
 /// (including the non-Android no-op, which just touches the reminder).
+/// One extra pass, 2026-10-26: on the FIRST launch after the reminder
+/// reliability fix, the alarm-precision dialog asks for the exact-alarm
+/// special access and the battery-optimization exemption - the two
+/// grants that make the 19:00 reminder fire with the app closed (the
+/// founder's "the notification only talks when I open the app" bug).
 Future<void> ensureNotificationOnboarding(BuildContext context) async {
   if (!Platform.isAndroid) {
     await RenanceNotifications.dailyStreakTouch();
@@ -37,6 +42,20 @@ Future<void> ensureNotificationOnboarding(BuildContext context) async {
         builder: (_) => const _StreakNagDialog(),
       );
     }
+  }
+  // The ONE-TIME alarm-precision ask (never repeats; even a "not now"
+  // counts - the reminder stays scheduled on the inexact fallback).
+  try {
+    if (!await RenanceNotifications.alarmPrecisionAsked() && context.mounted) {
+      await RenanceNotifications.markAlarmPrecisionAsked();
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const _AlarmPrecisionDialog(),
+      );
+    }
+  } catch (_) {
+    // The precision ask is sugar; the reminder still re-arms below.
   }
   await RenanceNotifications.dailyStreakTouch();
 }
@@ -120,6 +139,113 @@ class _StreakNagDialog extends StatelessWidget {
               height: 46,
               fontSize: 14,
               child: const Text('Allow notifications'),
+            ),
+            const SizedBox(height: 4),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Not now',
+                style: TextStyle(
+                  fontFamily: 'Nunito',
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: context.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The one-time alarm-precision dialog (2026-10-26): explains WHY the
+/// app needs the two special grants (the 19:00 streak reminder firing
+/// with the app closed), then fires the system asks. Best-effort like
+/// everything in this flow - a device that refuses both keeps its
+/// reminder on the inexact fallback.
+class _AlarmPrecisionDialog extends StatelessWidget {
+  const _AlarmPrecisionDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: context.card,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: context.outlineVariant),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0x33111C2D),
+              blurRadius: 28,
+              offset: Offset(0, 14),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Center(
+              child: Container(
+                width: 64,
+                height: 64,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: context.primary,
+                  shape: BoxShape.circle,
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: mixTowardBlack(context.primary, 0.68),
+                      offset: const Offset(0, 3),
+                      blurRadius: 0,
+                    ),
+                  ],
+                ),
+                child: const MsIcon(
+                  'alarm_off',
+                  size: 32,
+                  color: Colors.white,
+                  fill: true,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Reminders that actually remind',
+              textAlign: TextAlign.center,
+              style: RenanceText.sectionTitle.copyWith(
+                fontSize: 19,
+                color: context.ink,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your daily 19:00 nudge should reach you even when Renance '
+              'is closed. Allow "Alarms & reminders" and exempt Renance '
+              'from battery saving on the next two screens - otherwise '
+              'Android may hold the reminder back.',
+              textAlign: TextAlign.center,
+              style: RenanceText.bodyBase.copyWith(
+                fontSize: 13.5,
+                height: 1.5,
+                color: context.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            TactileButton(
+              onPressed: () async {
+                await RenanceNotifications.ensureAlarmPrecision();
+                if (context.mounted) Navigator.of(context).pop();
+              },
+              height: 46,
+              fontSize: 14,
+              child: const Text('Allow precise reminders'),
             ),
             const SizedBox(height: 4),
             TextButton(

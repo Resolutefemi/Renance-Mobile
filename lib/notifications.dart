@@ -17,6 +17,7 @@ library;
 
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -30,6 +31,19 @@ class RenanceNotifications {
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   static bool _ready = false;
+
+  /// The native streak-voice alarm (founder 2026-10-26, the real fix
+  /// for "the notification only talks when I open the app"): the plugin
+  /// fires a NATIVE alarm receiver that can only post a banner - no
+  /// Dart runs, so the TTS voice never played unattended. The
+  /// 'renance/voice' channel arms a SECOND, native alarm chain
+  /// (StreakVoiceAlarm -> StreakVoiceAlarmReceiver ->
+  /// StreakVoiceService) that posts the banner AND speaks the day's
+  /// line through Android's TextToSpeech with the app closed. The
+  /// plugin's schedule below stays as the visual belt-over-braces:
+  /// both fires carry the same id 2003 and the same text, so the tray
+  /// shows ONE banner, and only the native chain talks.
+  static const MethodChannel _voiceChannel = MethodChannel('renance/voice');
 
   /// Call once at app start. Android-only (the shell ships Android
   /// builds; other platforms no-op).
@@ -68,8 +82,17 @@ class RenanceNotifications {
 
   /// prefs key recording that the one-time ALARM PRECISION ask (the
   /// exact-alarm special access + the battery-optimization exemption)
-  /// has already been made - the ask never repeats.
+  /// has been ACCEPTED - once granted, the ask never repeats.
   static const String alarmAskKey = 'renance.alarmPrecisionAsked';
+
+  /// prefs key counting how many times the alarm-precision ask was
+  /// dismissed with "Not now" (2026-10-26 fix: the ask used to mark
+  /// itself done BEFORE the dialog, so one "Not now" quietly retired
+  /// the exact-alarm grant forever and the reminder stayed inexact -
+  /// exactly the "only fires when the app is open" class of bug).
+  /// Dismissals retry up to [_alarmAskMaxAttempts] opens.
+  static const String alarmAskAttemptsKey = 'renance.alarmPrecisionAttempts';
+  static const int _alarmAskMaxAttempts = 3;
 
   /// The alarm-precision pass (2026-10-26, the "reminder only fires
   /// when the app is open" bug): asks Android for the two grants an
@@ -114,11 +137,35 @@ class RenanceNotifications {
   }
 
   /// Marks the alarm-precision ask as done (the nag flow calls this
-  /// right after firing [ensureAlarmPrecision] so it runs once).
+  /// when the student taps "Allow precise reminders" - NOT before the
+  /// dialog: a dismissed ask must come back next launch).
   static Future<void> markAlarmPrecisionAsked() async {
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setBool(alarmAskKey, true);
+    } catch (_) {
+      // Sugar, never a gate.
+    }
+  }
+
+  /// Whether the dismiss-retry budget still allows another ask (a
+  /// "Not now" counts one attempt; after three the ask retires and
+  /// the reminder stays on the inexact fallback).
+  static Future<bool> alarmPrecisionCanAsk() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      return (prefs.getInt(alarmAskAttemptsKey) ?? 0) < _alarmAskMaxAttempts;
+    } catch (_) {
+      return false; // prefs trouble: stop nagging rather than nag forever.
+    }
+  }
+
+  /// Records one "Not now" dismissal of the alarm-precision ask.
+  static Future<void> markAlarmPrecisionDismissed() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final int attempts = (prefs.getInt(alarmAskAttemptsKey) ?? 0) + 1;
+      await prefs.setInt(alarmAskAttemptsKey, attempts);
     } catch (_) {
       // Sugar, never a gate.
     }
@@ -223,6 +270,26 @@ class RenanceNotifications {
           matchDateTimeComponents: DateTimeComponents.time,
         );
       }
+      // The VOICE half (the part the plugin can never do): arm the
+      // native alarm with today's line + pitch, so StreakVoiceService
+      // posts the banner and speaks it with the app closed. Best-effort
+      // like everything here - an older host or a missing channel
+      // leaves the (still scheduled) plugin reminder on the tray.
+      try {
+        final (String line, String gender) = _todayVoiceLine();
+        await _voiceChannel.invokeMethod<void>(
+          'schedule',
+          <String, dynamic>{
+            'hour': hour,
+            'line': line,
+            'pitch': _pitchFor(gender),
+            'title': streakReminderTitle,
+          },
+        );
+      } catch (_) {
+        // No native receiver (pre-update process): the plugin banner
+        // still shows; the voice waits for the next app open.
+      }
     } catch (_) {
       // Scheduling is sugar, never a gate.
     }
@@ -246,12 +313,7 @@ class RenanceNotifications {
         // The pitch carries the founder's voice rotation (woman 1.0,
         // girl 1.35, man 0.72) - the guarantee even when the voice pick
         // below finds nothing.
-        final double pitch = switch (gender) {
-          'girl' => 1.35,
-          'man' => 0.72,
-          _ => 1.0,
-        };
-        await tts.setPitch(pitch);
+        await tts.setPitch(_pitchFor(gender));
         try {
           // `getVoices` is a getter in some flutter_tts majors and a
           // method in others - awaiting the bare reference compiles for
@@ -327,11 +389,26 @@ class RenanceNotifications {
     );
   }
 
+  /// The gender's pitch (the founder's voice rotation): woman 1.0,
+  /// girl 1.35, man 0.72. Shared by the on-open TTS speaker and the
+  /// native voice alarm (which cannot compute Dart-side constants).
+  static double _pitchFor(String gender) => switch (gender) {
+        'girl' => 1.35,
+        'man' => 0.72,
+        _ => 1.0,
+      };
+
   /// The Settings 'Study Reminders' switch calls this on OFF: tonight's
-  /// zoned reminder is dropped immediately. ON goes through
-  /// [scheduleDailyStreakReminder] which re-arms.
+  /// zoned reminder is dropped immediately - and so is the native
+  /// voice alarm. ON goes through [scheduleDailyStreakReminder] which
+  /// re-arms both.
   static Future<void> cancelDailyStreakReminder() async {
     await init();
+    try {
+      await _voiceChannel.invokeMethod<void>('cancel');
+    } catch (_) {
+      // Sugar, never a gate.
+    }
     if (!_ready) return;
     try {
       await _plugin.cancel(streakReminderId);

@@ -19,6 +19,7 @@ import '../controllers.dart';
 import '../models.dart';
 import '../papers.dart';
 import '../qtext.dart';
+import '../learn_controller.dart';
 import 'achievement_share.dart';
 import 'exam_report_screen.dart';
 import 'fatigue_nudge.dart';
@@ -2292,6 +2293,12 @@ class _ResultState extends State<_Result> {
       if (_refreshed || !mounted) return;
       _refreshed = true;
       context.read<StudentController>().refresh();
+      // The learn wallet, too (founder 2026-10-26, "xp and streak counts
+      // once a user takes a quiz, exams or any lesson"): the graded
+      // paper pays the learn economy server-side (CreditExamXp - the
+      // wallet chips, today's goal, the league), so the header chips
+      // must re-read it right now, not on the next unrelated screen.
+      context.read<LearnController>().refresh();
     });
   }
 

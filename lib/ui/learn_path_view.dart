@@ -541,6 +541,33 @@ class _PathNodeState extends State<_PathNode> {
                   Positioned.fill(
                     child: _PulseRing(color: const Color(0xFFF59E0B)),
                   ),
+                // The cloud-ready chip (founder 2026-10-26, the R2-link
+                // pass): a quiet tick that this lesson lives on the
+                // Cloudflare R2 bucket and opens instantly from the edge.
+                if (t.blobReady && t.status != 'locked')
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: context.primary,
+                        border: Border.all(
+                          color: context.card,
+                          width: 2,
+                        ),
+                      ),
+                      child: const Center(
+                        child: MsIcon(
+                          'cloud_sync',
+                          size: 11,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 90),
                   width: 76,

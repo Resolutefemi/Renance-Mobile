@@ -17,6 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api_client.dart';
 import '../learn_controller.dart';
 import '../learn_models.dart';
+import '../lesson_cache.dart';
 import '../qtext.dart';
 import 'achievement_share.dart';
 import 'celebrations.dart';
@@ -173,21 +174,41 @@ class _LessonOverlayScreenState extends State<_LessonOverlayScreen> {
     try {
       switch (widget.mode) {
         case LessonMode.lesson:
-          LessonDoc? doc;
-          // Poll the 202 generating state: 3s beats, up to ~110s.
+          Map<String, dynamic>? raw;
+          // Poll the 202 generating state: 3s beats, up to ~110s. From
+          // the second beat on, a lesson the R2 bucket has served once
+          // replays from the local cache (the R2-link pass, founder
+          // 2026-10-26) - a cold Render instance or a slow generator
+          // never traps the student in a loader again.
           final DateTime deadline =
               DateTime.now().add(const Duration(seconds: 110));
+          int beats = 0;
           while (DateTime.now().isBefore(deadline)) {
-            doc = await api.learnLessonContent(widget.topicId!);
-            if (doc != null) break;
+            raw = await api.learnLessonContentJson(widget.topicId!);
+            if (raw != null) break;
+            beats += 1;
+            if (beats >= 2) {
+              final Map<String, dynamic>? cached =
+                  await LessonCache.get(widget.topicId!);
+              if (cached != null) {
+                raw = cached;
+                break;
+              }
+            }
             await Future<void>.delayed(const Duration(seconds: 3));
             if (!mounted) return;
           }
-          if (doc == null) {
+          if (raw == null) {
             throw NetworkException(
               'The generator is still writing this lesson - reopen it in a '
               'few seconds.',
             );
+          }
+          final LessonDoc doc = LessonDoc.fromJson(raw);
+          // Bank complete docs (the R2-link pass): a real notes body
+          // AND a real quiz earn disk space; failures stay invisible.
+          if (doc.notes.isNotEmpty && doc.quiz.isNotEmpty) {
+            unawaited(LessonCache.put(widget.topicId!, raw));
           }
           _doc = doc;
           _questions = doc.quiz;
@@ -213,10 +234,34 @@ class _LessonOverlayScreenState extends State<_LessonOverlayScreen> {
       }
       setState(() => _phase = _Phase.quiz);
     } on ApiException catch (e) {
-      _failLoad(e.message);
+      await _serveCachedOrFail(e.message);
     } on NetworkException catch (e) {
-      _failLoad(e.message);
+      await _serveCachedOrFail(e.message);
     }
+  }
+
+  /// One quiet cache rescue (the R2-link pass): when the network path
+  /// died, a lesson the bucket served once still opens from disk.
+  Future<void> _serveCachedOrFail(String message) async {
+    if (!mounted) return;
+    if (widget.mode == LessonMode.lesson && _doc == null) {
+      try {
+        final Map<String, dynamic>? cached =
+            await LessonCache.get(widget.topicId!);
+        if (cached != null) {
+          final LessonDoc doc = LessonDoc.fromJson(cached);
+          if (doc.notes.isNotEmpty && doc.quiz.isNotEmpty) {
+            _doc = doc;
+            _questions = doc.quiz;
+            setState(() => _phase = _Phase.study);
+            return;
+          }
+        }
+      } catch (_) {
+        // The cache is sugar - fall through to the error state.
+      }
+    }
+    _failLoad(message);
   }
 
   void _failLoad(String message) {

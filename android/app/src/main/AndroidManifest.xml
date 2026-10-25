@@ -27,6 +27,15 @@
          after a restart. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- The reminder VOICE (2026-10-26, the founder's "the notification
+         only talks when I open the app" bug, part 2): the exact alarm
+         now starts a shortService foreground service that posts the
+         banner and SPEAKS the day's line through on-device TTS - no
+         app open, no tap required. FOREGROUND_SERVICE (+ the short
+         type on Android 14+) is what makes a background-started
+         service legal to run for the ~20 seconds a spoken line needs. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SHORT_SERVICE"/>
     <!-- The direct "ignore battery optimizations" ask (a one-time
          system dialog from the notification nag flow): without the
          exemption, Xiaomi/Huawei/OPPO builds of Android kill the app
@@ -106,6 +115,28 @@
             android:exported="false"/>
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+        <!-- The reminder VOICE (2026-10-26): the native alarm receiver
+             fires at 19:00, starts the short foreground service that
+             posts the banner and speaks the day's line on-device, and
+             re-arms tomorrow; the boot twin re-arms after a restart or
+             an app update. The service detaches its banner on stop, so
+             only the voice ends - the nudge stays in the tray. -->
+        <service
+            android:name=".StreakVoiceService"
+            android:exported="false"
+            android:foregroundServiceType="shortService"/>
+        <receiver
+            android:name=".StreakVoiceAlarmReceiver"
+            android:exported="false"/>
+        <receiver
+            android:name=".StreakVoiceBootReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>

@@ -1602,10 +1602,21 @@ class ApiClient {
   /// GET /learn/topics/{id}/content - the lesson document, or null
   /// while the server is still writing it (the 202 generating state).
   Future<LessonDoc?> learnLessonContent(String topicId) async {
+    final Map<String, dynamic>? raw = await learnLessonContentJson(topicId);
+    if (raw == null) return null;
+    return LessonDoc.fromJson(raw);
+  }
+
+  /// GET /learn/topics/{id}/content as the RAW payload (the R2-link
+  /// pass, founder 2026-10-26): the overlay banks complete docs in the
+  /// LessonCache so a cold API or a still-writing generator replays the
+  /// local copy instead of stalling. Null = the 202 generating state.
+  Future<Map<String, dynamic>?> learnLessonContentJson(String topicId) async {
     final dynamic data = await _send('GET', '/learn/topics/$topicId/content');
-    final Map<String, dynamic> j = (data as Map).cast<String, dynamic>();
+    if (data is! Map) return null;
+    final Map<String, dynamic> j = data.cast<String, dynamic>();
     if (j['status'] == 'generating') return null;
-    return LessonDoc.fromJson(j);
+    return j;
   }
 
   /// POST /learn/progress - bank a finished lesson run.

@@ -15,6 +15,7 @@ import '../controllers.dart';
 import '../learn_catalog_secondary.dart';
 import '../learn_controller.dart';
 import '../learn_models.dart';
+import '../lesson_cache.dart';
 import '../models.dart' show Profile;
 import 'celebrations.dart';
 import 'learn_bits.dart';
@@ -2610,6 +2611,10 @@ class _CoursePathScreenState extends State<CoursePathScreen> {
         _path = path;
         _loading = false;
       });
+      // The R2-link prefetch (founder 2026-10-26): while the student
+      // reads the ladder, the cloud-ready lessons quietly land in the
+      // local cache - a tap on any of them opens instantly.
+      _prefetchCloudReady(path);
     } on ApiException catch (e) {
       if (mounted) setState(() { _loading = false; _error = e.message; });
     } on NetworkException catch (e) {
@@ -2619,6 +2624,31 @@ class _CoursePathScreenState extends State<CoursePathScreen> {
       // the page bar screen - never a blank pane under a pushed route.
       if (mounted) setState(() { _loading = false; _error = e.toString(); });
     }
+  }
+
+  /// Banks up to four cloud-ready (R2-served) lessons that are not
+  /// finished yet, sequentially and silently - the mobile twin of the
+  /// website's prefetchReadyLessons. Failures are invisible: the tap
+  /// path re-fetches through the API as always.
+  void _prefetchCloudReady(CoursePathModel path) {
+    final List<TopicNode> ready = path.topics
+        .where((TopicNode t) => t.blobReady && !t.isCompleted)
+        .take(4)
+        .toList();
+    if (ready.isEmpty) return;
+    final ApiClient api = context.read<ApiClient>();
+    Future<void> run(List<TopicNode> queue) async {
+      for (final TopicNode t in queue) {
+        try {
+          final Map<String, dynamic>? raw =
+              await api.learnLessonContentJson(t.id);
+          if (raw != null) await LessonCache.put(t.id, raw);
+        } catch (_) {
+          return; // a cold API - stop quietly
+        }
+      }
+    }
+    unawaited(run(ready));
   }
 
   Future<void> _openChest(UnitNode unit) async {

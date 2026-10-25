@@ -175,6 +175,7 @@ class TopicNode {
     required this.status,
     required this.bestScore,
     this.category = '',
+    this.blobReady = false,
   });
 
   final String id;
@@ -184,6 +185,11 @@ class TopicNode {
   final int unit;
   final String status; // completed | current | locked
   final int bestScore;
+
+  /// Cloudflare R2 serves this lesson today (founder 2026-10-26,
+  /// "link the R2 lessons to the courses"): the ladder marks the node
+  /// cloud-ready and the shell prefetches it, so opening is instant.
+  final bool blobReady;
 
   bool get isCompleted => status == 'completed';
   bool get isCurrent => status == 'current';
@@ -196,6 +202,7 @@ class TopicNode {
     unit: ((j['unit'] ?? 1) as num).toInt(),
     status: (j['status'] ?? 'locked') as String,
     bestScore: ((j['bestScore'] ?? 0) as num).toInt(),
+    blobReady: (j['blobReady'] ?? false) as bool,
   );
 }
 
@@ -458,6 +465,7 @@ class LessonDoc {
     required this.drawings,
     required this.source,
     required this.cached,
+    this.blobUrl = '',
   });
 
   final String topicId;
@@ -471,6 +479,11 @@ class LessonDoc {
   final List<LearnDrawing> drawings;
   final String source;
   final bool cached;
+
+  /// The lesson's public Cloudflare R2 url (founder 2026-10-26, the
+  /// R2-link pass): when the bucket served this doc the shell caches
+  /// it locally, so a later open is instant - and works offline.
+  final String blobUrl;
 
   factory LessonDoc.fromJson(Map<String, dynamic> j) => LessonDoc(
     topicId: (j['topicId'] ?? '') as String,
@@ -492,6 +505,7 @@ class LessonDoc {
         .toList(),
     source: (j['source'] ?? '') as String,
     cached: (j['cached'] ?? false) as bool,
+    blobUrl: (j['blobUrl'] ?? '') as String,
   );
 }
 

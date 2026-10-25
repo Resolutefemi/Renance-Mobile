@@ -100,5 +100,43 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        // The reminder VOICE channel (founder 2026-10-26, "the
+        // notification only talks when I open the app"): Dart re-arms
+        // the native 19:00 streak-voice alarm on every reminder pass.
+        // schedule(hour, line, pitch, title) arms the exact
+        // AlarmManager alarm; the fire starts StreakVoiceService, which
+        // posts the banner and SPEAKS the line with the app closed.
+        // cancel drops it (the Settings 'Study Reminders' switch).
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "renance/voice"
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "schedule" -> {
+                    try {
+                        val hour = (call.argument<Number>("hour") ?: 19).toInt()
+                        val line = call.argument<String>("line")
+                            ?: StreakVoiceService.DEFAULT_LINE
+                        val pitch = (call.argument<Number>("pitch") ?: 1.0).toFloat()
+                        val title = call.argument<String>("title")
+                            ?: StreakVoiceService.DEFAULT_TITLE
+                        StreakVoiceAlarm.schedule(this, hour, line, pitch, title)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        // Scheduling is sugar, never a gate.
+                        result.success(false)
+                    }
+                }
+                "cancel" -> {
+                    try {
+                        StreakVoiceAlarm.cancel(this)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 }

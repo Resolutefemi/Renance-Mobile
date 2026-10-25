@@ -492,31 +492,20 @@ class _WideRail extends StatelessWidget {
                 child: InkWell(
                   onTap: () => onTap(i),
                   borderRadius: BorderRadius.circular(16),
-                  // The desktop rail's active pill = the web SideNav's
-                  // nav-pill: macaw-light face + macaw-dark ink (light
-                  // tier) or the 9% macaw wash + inset macaw ring (dark
-                  // tier) - never a plain cardLow wash.
+                  // Founder directive 2026-10-26 (the navbar active pill,
+                  // the wide-rail pass): the SAME pale macaw-light slab +
+                  // macaw-dark ink the phone navbar wears - exactly the
+                  // first screenshot's Leagues pill - in BOTH tiers. The
+                  // dark tier's old 9% wash + inset macaw ring read as a
+                  // murky blue tile and the founder rejected it.
                   child: Container(
                     width: 92,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
                       color: i == active
-                          ? (context.darkChrome
-                              ? const Color(0x171CB0F6)
-                              : RenanceColors.macawLight)
+                          ? RenanceColors.macawLight
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: i == active && context.darkChrome
-                          ? <BoxShadow>[
-                              // the dark tier's inset 1.5px macaw ring
-                              BoxShadow(
-                                color: const Color(0x731CB0F6),
-                                offset: const Offset(0, 0),
-                                blurRadius: 0,
-                                spreadRadius: -1.5,
-                              ),
-                            ]
-                          : null,
                     ),
                     child: Column(
                       children: <Widget>[

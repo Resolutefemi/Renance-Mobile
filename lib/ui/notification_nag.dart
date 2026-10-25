@@ -43,11 +43,16 @@ Future<void> ensureNotificationOnboarding(BuildContext context) async {
       );
     }
   }
-  // The ONE-TIME alarm-precision ask (never repeats; even a "not now"
-  // counts - the reminder stays scheduled on the inexact fallback).
+  // The ONE-TIME alarm-precision ask (2026-10-26 fix: the ask used to
+  // mark itself done BEFORE the dialog showed, so one "Not now"
+  // permanently retired the exact-alarm grant - the reminder stayed
+  // inexact and the "only fires when the app is open" bug survived the
+  // fix on OEM devices). The mark now happens ONLY on "Allow precise
+  // reminders"; a dismissal retries on the next two launches.
   try {
-    if (!await RenanceNotifications.alarmPrecisionAsked() && context.mounted) {
-      await RenanceNotifications.markAlarmPrecisionAsked();
+    if (!await RenanceNotifications.alarmPrecisionAsked() &&
+        await RenanceNotifications.alarmPrecisionCanAsk() &&
+        context.mounted) {
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
@@ -240,7 +245,10 @@ class _AlarmPrecisionDialog extends StatelessWidget {
             const SizedBox(height: 20),
             TactileButton(
               onPressed: () async {
+                // The grants first, then the mark: only an ACCEPTED ask
+                // is ever "done" (a "Not now" retries next launch).
                 await RenanceNotifications.ensureAlarmPrecision();
+                await RenanceNotifications.markAlarmPrecisionAsked();
                 if (context.mounted) Navigator.of(context).pop();
               },
               height: 46,
@@ -249,7 +257,13 @@ class _AlarmPrecisionDialog extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () async {
+                // One dismissal off the retry budget - the ask returns
+                // on a later launch until it is accepted or the three
+                // dismissals run out.
+                await RenanceNotifications.markAlarmPrecisionDismissed();
+                if (context.mounted) Navigator.of(context).pop();
+              },
               child: Text(
                 'Not now',
                 style: TextStyle(

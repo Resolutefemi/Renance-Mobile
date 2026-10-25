@@ -1556,7 +1556,7 @@ class _MyCoursesCardState extends State<_MyCoursesCard> {
                                       .copyWith(fontWeight: FontWeight.w700)),
                               const SizedBox(height: 2),
                               Text(
-                                  '${c.completedTopics}/${c.topicCount} topics '
+                                  '${c.completedTopics}/${c.topicCount} units '
                                   '- $pct%',
                                   style: RenanceText.caption.copyWith(
                                       color: context.textSecondary)),

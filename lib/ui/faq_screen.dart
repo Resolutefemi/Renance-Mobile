@@ -73,7 +73,7 @@ const List<_FaqEntry> _kFaq = <_FaqEntry>[
   ),
   _FaqEntry(
     'What are quests?',
-    'Daily and weekly missions - finish topics, keep the streak, win '
+    'Daily and weekly missions - finish units, keep the streak, win '
     'papers - each paying out diamonds you can spend on freezes, '
     'hearts and boosts.',
   ),

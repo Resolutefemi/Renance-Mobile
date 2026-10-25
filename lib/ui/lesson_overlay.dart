@@ -1762,9 +1762,9 @@ class _DoneView extends StatelessWidget {
   Widget build(BuildContext context) {
     final int accuracy = total == 0 ? 0 : (correct * 100 ~/ total);
     final String heading = switch (mode) {
-      LessonMode.lesson => 'Topic complete!',
-      LessonMode.review => 'Unit review done!',
-      LessonMode.revision => 'Unit revision done!',
+      LessonMode.lesson => 'Unit complete!',
+      LessonMode.review => 'Section review done!',
+      LessonMode.revision => 'Section revision done!',
       LessonMode.practice => 'Practice done!',
     };
     final CompleteResult? r = result;

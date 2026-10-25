@@ -825,7 +825,7 @@ class _RevisionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    'Unit ${unit.index} Revision',
+                    'Section ${unit.index} Revision',
                     style: TextStyle(
                       fontFamily: 'Nunito',
                       fontSize: 13.5,
@@ -836,8 +836,8 @@ class _RevisionCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     unlocked
-                        ? '50 questions from all $topics topics of this unit'
-                        : 'Finish a topic in this unit to unlock the revision paper',
+                        ? '50 questions from all $topics units of this section'
+                        : 'Finish a unit in this section to unlock the revision paper',
                     style: TextStyle(
                       fontFamily: 'Nunito',
                       fontSize: 11.5,
@@ -887,7 +887,7 @@ class _GeneratingNode extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'More topics on the way',
+                  'More units on the way',
                   style: TextStyle(
                     fontFamily: 'Nunito',
                     fontSize: 14,
@@ -897,7 +897,7 @@ class _GeneratingNode extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'The next 10 topics are quietly being written for this '
+                  'The next 10 units are quietly being written for this '
                   'course. Reopen it in a moment and they will be waiting '
                   'on the ladder.',
                   style: RenanceText.caption.copyWith(

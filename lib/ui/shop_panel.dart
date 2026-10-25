@@ -236,7 +236,7 @@ class _ShopPanelState extends State<ShopPanel> {
           ),
         const SizedBox(height: 6),
         Text(
-          'Gems come from quests, topic chests, first clears and perfect '
+          'Gems come from quests, unit chests, first clears and perfect '
           'scores. Unlimited hearts stay on for everyone at launch.',
           style: RenanceText.caption.copyWith(
             fontSize: 12,

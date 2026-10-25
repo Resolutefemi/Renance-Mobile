@@ -63,7 +63,7 @@ class ShopScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
               child: Text(
                 'Spend your diamonds on streak freezes, heart refills and '
-                'XP boosts. Diamonds come from quests, topic chests, '
+                'XP boosts. Diamonds come from quests, unit chests, '
                 'first clears, perfect scores - and every friend who '
                 'joins with your referral code adds 100 more.',
                 style: RenanceText.bodySecondary.copyWith(

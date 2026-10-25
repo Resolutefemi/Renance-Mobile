@@ -468,7 +468,7 @@ class _ListFace extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Mark every course you want on your desk - each one becomes '
-                  'a long roadmap of topics, notes with real drawings, and '
+                  'a long roadmap of units, notes with real drawings, and '
                   'your actual past questions.',
                   textAlign: TextAlign.center,
                   style: RenanceText.bodySecondary.copyWith(
@@ -1478,7 +1478,7 @@ class _DeskFace extends StatelessWidget {
                 ),
                 child: Text(
                   '${courses.length} course${courses.length == 1 ? '' : 's'}'
-                  ' · $done / $total topics done',
+                  ' · $done / $total units done',
                   style: const TextStyle(
                     fontFamily: 'Nunito',
                     fontSize: 12,
@@ -1981,7 +1981,7 @@ class _ManageFaceState extends State<_ManageFace> {
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     child: Text(
                       'Nothing matches "${_query.trim()}". Try a course '
-                      'code (three letters) or a topic.',
+                      'code (three letters) or a unit.',
                       textAlign: TextAlign.center,
                       style: RenanceText.caption.copyWith(
                         fontSize: 12.5,
@@ -2456,7 +2456,7 @@ class _CourseRequestSheetState extends State<CourseRequestSheet> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'The desk has your course and its topics. It lands in '
+                        'The desk has your course and its units. It lands in '
                         'the review queue with your name on it - watch the app '
                         'for the update.',
                         textAlign: TextAlign.center,
@@ -2539,7 +2539,7 @@ class _CourseRequestSheetState extends State<CourseRequestSheet> {
                         maxLines: 5,
                         decoration: const InputDecoration(
                           labelText:
-                              'Some topics you expect in this course (one per line)',
+                              'Some units you expect in this course (one per line)',
                         ),
                       ),
                       const SizedBox(height: 16),

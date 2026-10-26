@@ -70,7 +70,7 @@ const List<_TourStep> _steps = <_TourStep>[
   _TourStep(
     icon: 'search',
     title: 'Search anything, instantly',
-    body: 'Looking for a topic, a course code or a past paper? The magnifier at '
+    body: 'Looking for a unit, a course code or a past paper? The magnifier at '
         'the top of Home searches the whole corpus - subjects, courses and '
         'questions - in one field.',
     whereToTap: 'Magnifier icon - top right of the Home header',

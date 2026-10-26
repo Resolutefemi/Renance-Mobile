@@ -596,7 +596,7 @@ class _CourseCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${course.completedTopics}/${course.topicCount} topics done',
+                  '${course.completedTopics}/${course.topicCount} units done',
                   style: TextStyle(
                     fontFamily: 'Nunito',
                     fontSize: 12,
@@ -978,10 +978,10 @@ class _SelectFaceState extends State<_SelectFace> {
                           child: _CatalogRow(
                             title: item.title,
                             // Founder 2026-10-21: JAMB subjects read 300
-                            // topics (the shelf data), and "in your list"
+                            // units (the shelf data), and "in your list"
                             // only rides the rows actually enrolled -
                             // unchecked subjects showed it unconditionally.
-                            sub: '${item.topicCount} topics'
+                            sub: '${item.topicCount} units'
                                 '${inList ? ' · in your list' : ''}',
                             subBold: inList,
                             checked: inList,
@@ -1938,7 +1938,7 @@ class _ManageFaceState extends State<_ManageFace> {
                 controller: _search,
                 onChanged: _onSearchChanged,
                 decoration: InputDecoration(
-                  hintText: 'Search by code (CSC, MTH…), title or topic',
+                  hintText: 'Search by code (CSC, MTH…), title or unit',
                   // Founder 2026-10-21: glyph centred on the text line,
                   // 10px inside a 36px hit area (the app's bar).
                   prefixIcon: MsFieldIcon('search',
@@ -2177,7 +2177,7 @@ class _DeskRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${course.department} · ${course.topicCount} topics'
+                  '${course.department} · ${course.topicCount} units'
                   '${inList ? ' · in your list' : ''}',
                   style: RenanceText.caption.copyWith(
                     fontSize: 11.5,
@@ -2485,7 +2485,7 @@ class _CourseRequestSheetState extends State<CourseRequestSheet> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "Tell us the course and some of its topics - we'll "
+                        "Tell us the course and some of its units - we'll "
                         "build the question bank.",
                         style: RenanceText.bodySecondary
                             .copyWith(color: context.textSecondary),

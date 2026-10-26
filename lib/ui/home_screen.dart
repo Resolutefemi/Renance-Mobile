@@ -177,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await RenanceNotifications.show(
       RenanceNotifications.reviewDueId,
       'Renance · time to revise',
-      '$due topic${due == 1 ? '' : 's'} due for review - keep the streak alive.',
+      '$due unit${due == 1 ? '' : 's'} due for review - keep the streak alive.',
     );
   }
 

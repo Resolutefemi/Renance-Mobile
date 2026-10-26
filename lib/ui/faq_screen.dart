@@ -27,7 +27,7 @@ const List<_FaqEntry> _kFaq = <_FaqEntry>[
     'What are diamonds and how do I earn them?',
     'Diamonds are the Renance currency. You earn them from daily and '
     'weekly quests, chest drops on the course path, and first-time '
-    'clears of topics and papers. Spend them in the Shop.',
+    'clears of units and papers. Spend them in the Shop.',
   ),
   _FaqEntry(
     'How does the referral bonus work?',

@@ -19,7 +19,7 @@ class LessonCache {
   LessonCache._();
 
   static const String _indexKey = 'renance.lessonCache';
-  static const int _cap = 16; // ~16 full lessons, oldest evicted first.
+  static const int _cap = 64; // ~16 full lessons, oldest evicted first.
 
   static String _docKey(String topicId) => 'renance.lessonDoc.$topicId';
 

@@ -174,7 +174,7 @@ class _LessonOverlayScreenState extends State<_LessonOverlayScreen> {
     try {
       switch (widget.mode) {
         case LessonMode.lesson:
-          Map<String, dynamic>? raw;
+          Map<String, dynamic>? raw = await LessonCache.get(widget.topicId!);
           // Poll the 202 generating state: 3s beats, up to ~110s. From
           // the second beat on, a lesson the R2 bucket has served once
           // replays from the local cache (the R2-link pass, founder
@@ -183,7 +183,7 @@ class _LessonOverlayScreenState extends State<_LessonOverlayScreen> {
           final DateTime deadline =
               DateTime.now().add(const Duration(seconds: 110));
           int beats = 0;
-          while (DateTime.now().isBefore(deadline)) {
+          while (raw == null && DateTime.now().isBefore(deadline)) {
             raw = await api.learnLessonContentJson(widget.topicId!);
             if (raw != null) break;
             beats += 1;

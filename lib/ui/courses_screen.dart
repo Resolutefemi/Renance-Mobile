@@ -2633,13 +2633,14 @@ class _CoursePathScreenState extends State<CoursePathScreen> {
   void _prefetchCloudReady(CoursePathModel path) {
     final List<TopicNode> ready = path.topics
         .where((TopicNode t) => t.blobReady && !t.isCompleted)
-        .take(4)
+        .take(8)
         .toList();
     if (ready.isEmpty) return;
     final ApiClient api = context.read<ApiClient>();
     Future<void> run(List<TopicNode> queue) async {
       for (final TopicNode t in queue) {
         try {
+          if (await LessonCache.get(t.id) != null) continue;
           final Map<String, dynamic>? raw =
               await api.learnLessonContentJson(t.id);
           if (raw != null) await LessonCache.put(t.id, raw);

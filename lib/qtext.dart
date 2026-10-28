@@ -101,7 +101,7 @@ const Map<String, String> _symbols = <String, String>{
   'uparrow': '\u2191', 'downarrow': '\u2193', 'ldots': '\u2026',
   'cdots': '\u22ef', 'dots': '\u2026', 'quad': '\u2003',
   'qquad': '\u2003\u2003', 'langle': '\u27e8', 'rangle': '\u27e9',
-  'ell': '\u2113', 'hbar': '\u210f',
+  'ell': '\u2113', 'hbar': '\u210f', 'implies': '\u21d2', 'iff': '\u21d4', 'setminus': '\u2216', 'subseteq': '\u2286', 'supseteq': '\u2287', 'rightleftharpoons': '\u21cc', 'varnothing': '\u2205',
 };
 
 /// Reads a balanced `{…}` group at `i` (or one bare character).
@@ -124,7 +124,7 @@ const Map<String, String> _symbols = <String, String>{
 const Map<String, String> _subDigits = <String, String>{
   '0': '\u2080', '1': '\u2081', '2': '\u2082', '3': '\u2083', '4': '\u2084',
   '5': '\u2085', '6': '\u2086', '7': '\u2087', '8': '\u2088', '9': '\u2089',
-  '+': '\u208a', '-': '\u208b', '=': '\u208c', '(': '\u208d', ')': '\u208e',
+  '+': '\u208a', '-': '\u208b', '\u2212': '\u208b', '=': '\u208c', '(': '\u208d', ')': '\u208e',
   'n': '\u2099', 'm': '\u2098', 'x': '\u2093', 'e': '\u2091', 'o': '\u2092',
   'a': '\u2090', 'i': '\u1d62', 'r': '\u1d63', 'u': '\u1d64', 'v': '\u1d65',
 };
@@ -132,7 +132,7 @@ const Map<String, String> _subDigits = <String, String>{
 const Map<String, String> _supDigits = <String, String>{
   '0': '\u2070', '1': '\u00b9', '2': '\u00b2', '3': '\u00b3', '4': '\u2074',
   '5': '\u2075', '6': '\u2076', '7': '\u2077', '8': '\u2078', '9': '\u2079',
-  '+': '\u207a', '-': '\u207b', '=': '\u207c', '(': '\u207d', ')': '\u207e',
+  '+': '\u207a', '-': '\u207b', '\u2212': '\u207b', '=': '\u207c', '(': '\u207d', ')': '\u207e',
   'n': '\u207f', 'i': '\u2071',
 };
 
@@ -184,7 +184,16 @@ String latexToText(String src) {
         i = i1;
         continue;
       }
-      if (cmd == 'text' || cmd == 'mathrm' || cmd == 'mbox' || cmd == 'operatorname') {
+      if (cmd == 'mathbb') {
+        final (String body, int i1) = _latexGroup(src, i);
+        const Map<String, String> bbMap = <String, String>{
+          'N': '\u2115', 'Z': '\u2124', 'Q': '\u211a', 'R': '\u211d', 'C': '\u2102',
+        };
+        out.write(bbMap[body.trim()] ?? body);
+        i = i1;
+        continue;
+      }
+      if (cmd == 'mathcal' || cmd == 'text' || cmd == 'mathrm' || cmd == 'mbox' || cmd == 'operatorname') {
         final (String body, int i1) = _latexGroup(src, i);
         out.write(body);
         i = i1;
@@ -311,7 +320,9 @@ List<MathSeg> splitMathSegments(String input) {
       final int end = input.indexOf(r'\$', i + 1);
       if (end > i + 1) {
         final String body = input.substring(i + 1, end);
-        if (RegExp(r'\\[a-zA-Z]+|\^|_|=').hasMatch(body)) {
+        final String trimmed = body.trim();
+        final bool isCurrencyProse = RegExp(r'^\d+(?:\.\d+)?\s+[a-zA-Z]').hasMatch(trimmed);
+        if (trimmed.isNotEmpty && !body.contains('\n') && !isCurrencyProse) {
           flush();
           segs.add(MathSeg.math(body, display: false));
           i = end + 1;
@@ -348,8 +359,9 @@ List<MathSeg> splitMathSegments(String input) {
 /// an upstream archive dump ("\\begin" for "\begin"), never valid
 /// LaTeX - shave one backslash off so the typesetter sees sane input.
 String normalizeLatexEscapes(String text) {
-  if (!text.contains('\\')) return text;
-  return text.replaceAllMapped(
+  final String minusNorm = text.replaceAll('\u2212', '-');
+  if (!minusNorm.contains('\\')) return minusNorm;
+  return minusNorm.replaceAllMapped(
     RegExp(r'\\{2,}(?=[a-zA-Z])'),
     (Match m) => m.group(0)!.substring(1),
   );
@@ -377,11 +389,19 @@ class MathTex extends StatelessWidget {
     final String normalized = normalizeLatexEscapes(tex.trim());
     final TextStyle base =
         style ?? DefaultTextStyle.of(context).style.copyWith(height: 1.45);
-    return fmath.Math.tex(
+    final Widget mathWidget = fmath.Math.tex(
       normalized,
       mathStyle: display ? fmath.MathStyle.display : fmath.MathStyle.text,
       textStyle: base,
       onErrorFallback: (Object err) => Text(latexToText(normalized), style: base),
+    );
+    if (!display) return mathWidget;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: mathWidget,
+      ),
     );
   }
 }
@@ -535,8 +555,10 @@ class _Parser {
     TextStyle inner = style;
     if (tag == 'sub' || tag == 'sup') {
       inner = style.copyWith(fontSize: (style.fontSize ?? 14) * 0.72);
-    } else if (tag == 'th') {
+    } else if (tag == 'th' || tag == 'b' || tag == 'strong') {
       inner = style.copyWith(fontWeight: FontWeight.w700);
+    } else if (tag == 'i' || tag == 'em') {
+      inner = style.copyWith(fontStyle: FontStyle.italic);
     }
 
     int j = i + 1;
@@ -707,7 +729,13 @@ class QuestionText extends StatelessWidget {
       height: 1.45,
       color: (style?.color ?? inherited) ?? const Color(0xFF3C3C46),
     );
-    if (!text.contains('<')) {
+    final String normInput = text.contains('**')
+        ? text.replaceAllMapped(
+            RegExp(r'\*\*([^\n*]+?)\*\*'),
+            (Match m) => '<strong>${m.group(1)}</strong>',
+          )
+        : text;
+    if (!normInput.contains('<')) {
       // plain text (possibly with LaTeX): keep line breaks, typeset the
       // math runs with the KaTeX-grade engine.
       final String plain = decodeEntities(text).replaceAll('\r\n', '\n');
@@ -730,7 +758,7 @@ class QuestionText extends StatelessWidget {
         overflow: overflow ?? TextOverflow.clip,
       );
     }
-    final List<InlineSpan> spans = buildQuestionSpans(text, base);
+    final List<InlineSpan> spans = buildQuestionSpans(normInput, base);
     if (!_spansCarryText(spans)) {
       // Never render a silent blank: if the HTML parse produced nothing
       // visible (a body wrapped in dropped tags, an image-only block,

@@ -781,7 +781,7 @@ class _StudyView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 2),
-            Text(
+            QuestionText(
               doc.title,
               style: const TextStyle(
                 fontFamily: 'Nunito',
@@ -847,7 +847,7 @@ class _StudyView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(
+            QuestionText(
               '${page - cursor + 1}. ${note.heading}',
               style: const TextStyle(
                 fontFamily: 'Nunito',
